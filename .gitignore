@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (CRITICAL: prevents leaking API keys/passwords)
+.env
+.env.*
+!.env.example
+
+# Windows system artifacts
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# TypeScript build cache
+*.tsbuildinfo
