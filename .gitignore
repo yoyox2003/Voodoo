@@ -38,3 +38,6 @@ $RECYCLE.BIN/
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# Docs for ai
+docs/
