@@ -41,3 +41,8 @@ $RECYCLE.BIN/
 
 # Docs for ai
 docs/
+
+# Agent docs for prisma
+.agents
+.claude
+.windsurf
