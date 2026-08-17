@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  authId    String   @unique
+  email     String   @unique
+  folders   Folder[]
+  createdAt DateTime @default(now())
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  buckets   Bucket[]
+  createdAt DateTime @default(now())
+}
+
+model Bucket {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  folderId    String
+  folder      Folder  @relation(fields: [folderId], references: [id])
+  tasks       Task[]
+  createdAt DateTime @default(now())
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  importance  Importance @default(GREEN)
+  isDone      Boolean    @default(false)
+  bucketId    String
+  bucket      Bucket     @relation(fields: [bucketId], references: [id])
+  subtasks    Subtask[]
+  createdAt   DateTime   @default(now())
+}
+
+model Subtask {
+  id        String  @id @default(uuid())
+  title     String
+  isDone    Boolean @default(false)
+  taskId    String
+  task      Task    @relation(fields: [taskId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum Importance {
+  GREEN
+  AMBER
+  RED
+}
