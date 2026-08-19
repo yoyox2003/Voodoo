@@ -2,6 +2,7 @@ import express from "express"; // This is the nodejs backend framework
 import cors from "cors";
 import dotenv from "dotenv"; // This is to load env variables
 import prisma from "./prisma";
+import { clerkMiddleware, getAuth } from "@clerk/express";
 
 dotenv.config();
 
@@ -9,6 +10,7 @@ const app = express();
 const port = Number(process.env.PORT) || 4000;
 
 app.use(cors());
+app.use(clerkMiddleware());
 app.use(express.json());
 
 // ================================================================================================
@@ -16,12 +18,19 @@ app.use(express.json());
 // ================================================================================================
 
 // GET all folders in database. Will change it to be user specific later
-app.get("/api/folders", async (_req, res) => {
+app.get("/api/folders", async (req, res) => {
+  // Getting the user from clerk
+  const { isAuthenticated, userId } = getAuth(req);
+
+  // Checking if user is valid
+  if (!isAuthenticated || !userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   try {
     const folders = await prisma.folder.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { userId },
+      orderBy: { createdAt: "desc" },
     });
 
     // Sending the folders back to frontend as JSON
@@ -37,6 +46,14 @@ app.get("/api/folders", async (_req, res) => {
 
 // Adding a foler to the database. Has a test user now so will change to real user later
 app.post("/api/folders", async (req, res) => {
+  // Getting the user from clerk
+  const { isAuthenticated, userId } = getAuth(req);
+
+  // Checking if user is valid
+  if (!isAuthenticated || !userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   const { name } = req.body;
 
   // If condition to check if data is valid before sending it
@@ -50,7 +67,7 @@ app.post("/api/folders", async (req, res) => {
     const folder = await prisma.folder.create({
       data: {
         name: name.trim(),
-        userId: "test-user-1",
+        userId, // Use authentication id
       },
     });
 
@@ -122,7 +139,15 @@ app.delete("/api/folders/:id", async (req, res) => {
 // ================================================================================================
 
 // get all buckets in database, will change later to only show per user
-app.get("/api/buckets", async (_req, res) => {
+app.get("/api/buckets", async (req, res) => {
+  // Getting the user from clerk
+  const { isAuthenticated, userId } = getAuth(req);
+
+  // Checking if user is valid
+  if (!isAuthenticated || !userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   try {
     const buckets = await prisma.bucket.findMany({
       orderBy: {
