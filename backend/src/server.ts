@@ -108,7 +108,41 @@ app.delete("/api/folders/:id", async (req, res) => {
       return res.status(404).json({ error: "Folder not found" });
     }
 
-    await prisma.folder.delete({ where: { id: folder.id } });
+    // A transaction groups these queries into one all-or-nothing operation.
+    // If any delete fails, Prisma rolls back the earlier deletes, so the folder
+    // is never left half-deleted with only some of its children removed.
+    await prisma.$transaction(async (transaction) => {
+      // Postgres protects relationships with foreign keys, so we must delete
+      // the deepest children first. Every subtask belongs to a task, whose
+      // bucket belongs to this folder.
+      await transaction.subtask.deleteMany({
+        where: {
+          task: {
+            bucket: {
+              folderId: folder.id,
+            },
+          },
+        },
+      });
+
+      // Once no subtasks point at the tasks, deleting all tasks in the folder's
+      // buckets is safe. deleteMany also succeeds when there are no tasks.
+      await transaction.task.deleteMany({
+        where: {
+          bucket: {
+            folderId: folder.id,
+          },
+        },
+      });
+
+      // Tasks no longer point at these buckets, so remove the buckets next.
+      await transaction.bucket.deleteMany({
+        where: { folderId: folder.id },
+      });
+
+      // The folder is last because its buckets used to reference it.
+      await transaction.folder.delete({ where: { id: folder.id } });
+    });
     return res.status(204).send();
   } catch (error) {
     console.error("Delete folder error:", error);
@@ -203,7 +237,24 @@ app.delete("/api/buckets/:id", async (req, res) => {
       return res.status(404).json({ error: "Bucket not found" });
     }
 
-    await prisma.bucket.delete({ where: { id: bucket.id } });
+    await prisma.$transaction(async (transaction) => {
+      await transaction.subtask.deleteMany({
+        where: {
+          task: {
+            bucketId: bucket.id,
+          },
+        },
+      });
+
+      await transaction.task.deleteMany({
+        where: {
+          bucketId: id,
+        },
+      });
+
+      await transaction.bucket.delete({ where: { id: bucket.id } });
+    });
+
     return res.status(204).send();
   } catch (error) {
     console.error("Delete bucket error:", error);
@@ -298,7 +349,17 @@ app.delete("/api/tasks/:id", async (req, res) => {
       return res.status(404).json({ error: "Task not found" });
     }
 
-    await prisma.task.delete({ where: { id: task.id } });
+    await prisma.$transaction(async (transaction) => {
+      // first delete subtasks then delete tasks
+      await transaction.subtask.deleteMany({ where: { taskId: task.id } });
+
+      await transaction.task.delete({
+        where: {
+          id,
+        },
+      });
+    });
+
     return res.status(204).send();
   } catch (error) {
     console.error("Delete task error:", error);
