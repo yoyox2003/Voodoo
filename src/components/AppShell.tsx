@@ -23,7 +23,7 @@ export function AppShell({ activeEntity, children, onEntityChange }: AppShellPro
             ✓
           </div>
           <div>
-            <p className="font-bold">TooDoo</p>
+            <p className="font-bold">Voodoo</p>
             <p className="text-xs text-[#8b8580] dark:text-[#a9a19a]">API playground</p>
           </div>
         </div>

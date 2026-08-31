@@ -7,12 +7,12 @@
 /* A small global baseline keeps the page dimensions and form typography
    predictable before Tailwind utility classes apply component-specific styles. */
 html {
-  background: #f8f6f3;
+  background: #fffdfc;
   color-scheme: light;
 }
 
 html.dark {
-  background: #1b1a18;
+  background: #1e1c1a;
   color-scheme: dark;
 }
 

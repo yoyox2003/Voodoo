@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ThemeContext, type Theme } from "./ThemeContext";
 
-const storageKey = "toodoo-theme";
+const storageKey = "voodoo-theme";
 
 function initialTheme(): Theme {
   const savedTheme = window.localStorage.getItem(storageKey);

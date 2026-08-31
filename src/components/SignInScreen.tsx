@@ -3,7 +3,7 @@ import { useTheme } from "../hooks/useTheme";
 import { ThemeToggle } from "./ThemeToggle";
 
 // Clerk handles passwords, social providers, MFA, and session security. This
-// component supplies the surrounding TooDoo page instead of rebuilding auth.
+// component supplies the surrounding Voodoo page instead of rebuilding auth.
 export function SignInScreen() {
   const { theme } = useTheme();
 
@@ -19,7 +19,7 @@ export function SignInScreen() {
             ✓
           </div>
           <p className="mt-12 text-sm font-semibold uppercase tracking-[0.18em] text-white/75">
-            TooDoo API tester
+            Voodoo API tester
           </p>
           <h1 className="mt-4 text-4xl font-bold leading-tight">
             Test your backend with a calm, focused workspace.
@@ -32,7 +32,7 @@ export function SignInScreen() {
         <div className="flex min-h-[530px] items-center justify-center bg-[#fffefd] p-6 transition-colors dark:bg-[#211f1d] sm:p-10">
           <div className="w-full max-w-sm">
             <p className="mb-2 text-sm font-semibold text-[#d95d47]">WELCOME BACK</p>
-            <h2 className="mb-7 text-3xl font-bold">Sign in to TooDoo</h2>
+            <h2 className="mb-7 text-3xl font-bold">Sign in to Voodoo</h2>
             {/* Clerk renders its own card, so its color variables need the same
                 theme value as our surrounding React page. */}
             <SignIn
