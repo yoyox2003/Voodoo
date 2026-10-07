@@ -1,5 +1,5 @@
 import { clerkMiddleware } from "@clerk/express";
-import type { User } from "@prisma/client";
+import { Importance, type User } from "@prisma/client";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Response } from "express";
@@ -28,6 +28,13 @@ function currentUserId(res: Response): string {
 
 function validName(name: unknown): name is string {
   return typeof name === "string" && Boolean(name.trim());
+}
+
+// Use Prisma's generated enum so request validation matches the database's
+// allowed importance values. A TypeScript type alone cannot validate JSON.
+function validImportance(value: unknown): value is Importance {
+  return typeof value === "string" &&
+    Object.values(Importance).some((importance) => importance === value);
 }
 
 // ================================================================================================
@@ -282,10 +289,14 @@ app.get("/api/tasks", async (_req, res) => {
 
 app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
   const { bucketId } = req.params;
-  const { name } = req.body;
+  const { name, importance } = req.body ?? {};
 
   if (!validName(name)) {
     return res.status(400).json({ error: "Task name is required" });
+  }
+
+  if (importance !== undefined && !validImportance(importance)) {
+    return res.status(400).json({ error: "Importance must be GREEN, AMBER, or RED" });
   }
 
   try {
@@ -298,13 +309,69 @@ app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
     }
 
     const task = await prisma.task.create({
-      data: { title: name.trim(), bucketId: bucket.id },
+      // Omitted importance uses the schema's GREEN default. We do not set
+      // isDone here, so Prisma uses the schema's false default for new tasks.
+      data: {
+        title: name.trim(),
+        bucketId: bucket.id,
+        ...(importance !== undefined ? { importance } : {}),
+      },
     });
 
     return res.status(201).json(task);
   } catch (error) {
     console.error("Create task error:", error);
     return res.status(500).json({ error: "Failed to create task" });
+  }
+});
+
+// PATCH updates only the supplied fields; the existing PUT route still handles
+// renaming. For example, { isDone: true } leaves the importance unchanged.
+app.patch("/api/tasks/:id", async (req, res) => {
+  const { id } = req.params;
+  const { isDone, importance } = req.body ?? {};
+
+  // Check the actual JSON values before passing them to Prisma. In particular,
+  // the string "false" is not the same as the boolean false.
+  if (isDone !== undefined && typeof isDone !== "boolean") {
+    return res.status(400).json({ error: "isDone must be a boolean" });
+  }
+
+  if (importance !== undefined && !validImportance(importance)) {
+    return res.status(400).json({ error: "Importance must be GREEN, AMBER, or RED" });
+  }
+
+  if (isDone === undefined && importance === undefined) {
+    return res.status(400).json({ error: "Provide isDone or importance to update" });
+  }
+
+  try {
+    // Follow Task -> Bucket -> Folder to check ownership. Returning the same
+    // 404 for missing and other users' tasks avoids revealing their records.
+    const task = await prisma.task.findFirst({
+      where: { id, bucket: { folder: { userId: currentUserId(res) } } },
+    });
+
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: task.id },
+      // Include only supplied fields so omitted values are preserved. Compare
+      // with undefined instead of checking truthiness: false must be saved too,
+      // allowing a completed task to be reopened. Prisma writes these changes
+      // to the Task row and returns it; no Subtask rows are changed.
+      data: {
+        ...(isDone !== undefined ? { isDone } : {}),
+        ...(importance !== undefined ? { importance } : {}),
+      },
+    });
+
+    return res.status(200).json(updatedTask);
+  } catch (error) {
+    console.error("Update task status error:", error);
+    return res.status(500).json({ error: "Failed to update task" });
   }
 });
 
