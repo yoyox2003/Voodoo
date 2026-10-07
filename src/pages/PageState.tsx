@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ApiError } from "../lib/api";
 
-type PageFrameProps = { children: ReactNode; eyebrow?: string; title: string };
+type PageFrameProps = { children: ReactNode; eyebrow?: string; title: ReactNode };
 
 export function PageFrame({ children, eyebrow, title }: PageFrameProps) {
   return <main className="mx-auto max-w-[900px] px-6 py-10 sm:px-10 lg:px-12 lg:py-14">

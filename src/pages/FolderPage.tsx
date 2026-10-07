@@ -1,6 +1,7 @@
 import { ChevronDown, MoreHorizontal } from "lucide-react";
 import { Link, useParams } from "react-router";
 import { TaskMarker } from "../components/TaskMarker";
+import { TaskImportance } from "../components/TaskImportance";
 import { useWorkspaceOutlet } from "../hooks/useWorkspaceOutlet";
 import { PageFrame, WorkspacePageStatus } from "./PageState";
 
@@ -23,7 +24,7 @@ export function FolderPage() {
               <Link aria-label={`Open ${bucket.name}`} className="rounded p-1 text-[#8a837c] hover:bg-[#f3f1ef] dark:text-[#aaa29b] dark:hover:bg-[#302d29]" to={`/buckets/${bucket.id}`}><MoreHorizontal aria-hidden="true" size={18} /></Link>
             </div>
             {tasks.length === 0 ? <p className="px-9 py-4 text-sm text-[#77716b] dark:text-[#aaa29b]">No tasks yet.</p>
-              : <ul>{tasks.slice(0, 3).map((task) => <li className="border-b border-[#efebe8] dark:border-[#312e2b]" key={task.id}><Link className="flex min-h-12 items-center gap-3 py-2.5 text-[15px] hover:text-[#c84b37] dark:hover:text-[#ffad9b]" to={`/tasks/${task.id}`}><TaskMarker done={task.isDone} /><span>{task.title}</span></Link></li>)}{tasks.length > 3 && <li className="flex min-h-11 items-center gap-3 border-b border-[#efebe8] py-2.5 text-sm text-[#8a837c] dark:border-[#312e2b] dark:text-[#aaa29b]"><MoreHorizontal aria-hidden="true" size={21} /><span>{tasks.length - 3} more tasks</span></li>}</ul>}
+              : <ul>{tasks.slice(0, 3).map((task) => <li className="border-b border-[#efebe8] dark:border-[#312e2b]" key={task.id}><Link className="flex min-h-12 items-center gap-3 py-2.5 text-[15px] hover:text-[#c84b37] dark:hover:text-[#ffad9b]" to={`/tasks/${task.id}`}><TaskMarker done={task.isDone} /><TaskImportance importance={task.importance} /><span className={task.isDone ? "text-[#958d86] line-through dark:text-[#aaa29b]" : ""}>{task.title}</span></Link></li>)}{tasks.length > 3 && <li className="flex min-h-11 items-center gap-3 border-b border-[#efebe8] py-2.5 text-sm text-[#8a837c] dark:border-[#312e2b] dark:text-[#aaa29b]"><MoreHorizontal aria-hidden="true" size={21} /><span>{tasks.length - 3} more tasks</span></li>}</ul>}
           </section>;
         })}
       </div>}
