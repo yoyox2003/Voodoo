@@ -5,6 +5,7 @@ import { Button } from "../UI/Button";
 import { TextField } from "../UI/TextField";
 import { useAuthenticatedApi } from "../hooks/useAuthenticatedApi";
 import { ApiError } from "../lib/api";
+import { useToast } from "../toast/useToast";
 import type { EntityKind, EntityRecord } from "../types/entities";
 import { entityLabels, recordName } from "../types/entities";
 import { ApiRecordRow } from "./ApiRecordRow";
@@ -83,10 +84,9 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
   const request = useAuthenticatedApi();
   const queryClient = useQueryClient();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const toast = useToast();
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const detail = parentDetails[activeEntity];
   const recordsPath = listPaths[activeEntity];
   const recordsKey = apiQueryKey(userId, recordsPath);
@@ -151,11 +151,11 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
         ),
       );
       setName("");
-      setNotice(`${entityLabels[activeEntity].slice(0, -1)} created successfully.`);
+      toast.success(`${entityLabels[activeEntity].slice(0, -1)} created successfully.`);
     },
     onError: (error, _variables, context) => {
       queryClient.setQueryData(recordsKey, context?.previousRecords);
-      setActionError(messageFrom(error));
+      toast.error(messageFrom(error));
     },
     onSettled: reconcileCache,
   });
@@ -176,10 +176,10 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
       );
       return { previousRecords } satisfies MutationSnapshot;
     },
-    onSuccess: () => setNotice("Record renamed successfully."),
+    onSuccess: () => toast.success(`${entityLabels[activeEntity].slice(0, -1)} renamed successfully.`),
     onError: (error, _variables, context) => {
       queryClient.setQueryData(recordsKey, context?.previousRecords);
-      setActionError(messageFrom(error));
+      toast.error(messageFrom(error));
     },
     onSettled: reconcileCache,
   });
@@ -195,10 +195,10 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
       );
       return { previousRecords } satisfies MutationSnapshot;
     },
-    onSuccess: () => setNotice("Record deleted successfully."),
+    onSuccess: () => toast.success(`${entityLabels[activeEntity].slice(0, -1)} deleted successfully.`),
     onError: (error, _record, context) => {
       queryClient.setQueryData(recordsKey, context?.previousRecords);
-      setActionError(messageFrom(error));
+      toast.error(messageFrom(error));
     },
     onSettled: reconcileCache,
   });
@@ -212,16 +212,13 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
 
   async function createRecord(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setActionError(null);
-    setNotice(null);
-
     if (!name.trim()) {
-      setActionError("Please enter a name before creating the record.");
+      toast.error("Please enter a name before creating the record.");
       return;
     }
 
     if (detail && !parentId) {
-      setActionError(`Choose a ${detail.label.toLowerCase()} before creating this record.`);
+      toast.error(`Choose a ${detail.label.toLowerCase()} before creating this record.`);
       return;
     }
 
@@ -233,9 +230,6 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
   }
 
   async function renameRecord(record: EntityRecord, nextName: string) {
-    setActionError(null);
-    setNotice(null);
-
     try {
       await renameMutation.mutateAsync({ record, nextName: nextName.trim() });
     } catch {
@@ -244,9 +238,6 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
   }
 
   async function deleteRecord(record: EntityRecord) {
-    setActionError(null);
-    setNotice(null);
-
     try {
       await deleteMutation.mutateAsync(record);
     } catch {
@@ -257,7 +248,7 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
   const initialLoading = recordsQuery.isPending && !recordsQuery.data;
   const isRefreshing = recordsQuery.isFetching || (Boolean(detail) && parentsQuery.isFetching);
   const queryError = recordsQuery.error ?? (detail ? parentsQuery.error : null);
-  const error = actionError ?? (queryError ? messageFrom(queryError) : null);
+  const error = queryError ? messageFrom(queryError) : null;
   const isMutating =
     createMutation.isPending || renameMutation.isPending || deleteMutation.isPending;
 
@@ -326,12 +317,6 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
           {error}
         </p>
       )}
-      {notice && (
-        <p className="mt-6 rounded-xl border border-[#cfe4d7] bg-[#f1faf4] px-4 py-3 text-sm text-[#2b6e46] dark:border-[#3f644d] dark:bg-[#24382b] dark:text-[#9fd9af]" role="status">
-          {notice}
-        </p>
-      )}
-
       <section className="mt-8">
         <div className="flex items-center justify-between border-b border-[#efebe7] pb-3 dark:border-[#383531]">
           <h2 className="text-lg font-bold">Current records</h2>

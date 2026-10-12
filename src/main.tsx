@@ -7,6 +7,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { queryClient } from "./lib/queryClient.ts";
 import { ThemeProvider } from "./theme/ThemeProvider.tsx";
+import { ToastProvider } from "./toast/ToastProvider.tsx";
 
 // Vite only exposes variables that start with VITE_. A publishable key is safe
 // for the browser; the Clerk secret key must stay in backend/.env only.
@@ -24,13 +25,15 @@ createRoot(document.getElementById('root')!).render(
         every component below it. */}
     <ClerkProvider publishableKey={publishableKey}>
       <ThemeProvider>
-        {/* QueryClientProvider gives API components one shared TanStack Query
-            cache, so lists and parent dropdowns can reuse server data. */}
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </QueryClientProvider>
+        <ToastProvider>
+          {/* QueryClientProvider gives API components one shared TanStack Query
+              cache, so lists and parent dropdowns can reuse server data. */}
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </QueryClientProvider>
+        </ToastProvider>
       </ThemeProvider>
     </ClerkProvider>
   </StrictMode>,

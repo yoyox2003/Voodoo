@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { Button } from "../UI/Button";
 import { useAuthenticatedApi } from "../hooks/useAuthenticatedApi";
 import { ApiError } from "../lib/api";
+import { useToast } from "../toast/useToast";
 import type { Bucket, Folder } from "../types/entities";
 
 type CreateTarget = { kind: "folder" } | { folder: Folder; kind: "bucket" };
@@ -25,9 +26,11 @@ export function CreateWorkspaceItemDialog({ onClose, target }: CreateWorkspaceIt
   const { userId } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const itemLabel = target?.kind === "bucket" ? "bucket" : "folder";
 
   useEffect(() => {
     if (target) {
@@ -61,15 +64,16 @@ export function CreateWorkspaceItemDialog({ onClose, target }: CreateWorkspaceIt
     },
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ["api", userId] });
+      toast.success(`${itemLabel[0].toUpperCase()}${itemLabel.slice(1)} created successfully.`);
       onClose();
       navigate("folderId" in created ? `/buckets/${created.id}` : `/folders/${created.id}`);
     },
+    onError: (error) => toast.error(errorMessage(error)),
   });
 
   if (!target) return null;
 
-  const itemLabel = target.kind === "folder" ? "folder" : "bucket";
-  const error = validationError ?? (createMutation.error ? errorMessage(createMutation.error) : null);
+  const error = validationError;
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
