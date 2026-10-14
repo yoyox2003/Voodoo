@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import express, { type Response } from "express";
 import { requireAppUser } from "./middleware/auth";
 import prisma from "./prisma";
+import { parseDueDate } from "./dueDate";
 
 dotenv.config();
 
@@ -35,6 +36,14 @@ function validName(name: unknown): name is string {
 function validImportance(value: unknown): value is Importance {
   return typeof value === "string" &&
     Object.values(Importance).some((importance) => importance === value);
+}
+
+// Forms may omit description, clear it with null, or send text. Trim here so
+// the database does not collect descriptions made only of spaces.
+function parseDescription(value: unknown): string | null | undefined {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "string") return undefined;
+  return value.trim() || null;
 }
 
 // ================================================================================================
@@ -289,7 +298,9 @@ app.get("/api/tasks", async (_req, res) => {
 
 app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
   const { bucketId } = req.params;
-  const { name, importance } = req.body ?? {};
+  const { name, importance, description, dueDate } = req.body ?? {};
+  const parsedDescription = parseDescription(description);
+  const parsedDueDate = dueDate === undefined ? undefined : parseDueDate(dueDate);
 
   if (!validName(name)) {
     return res.status(400).json({ error: "Task name is required" });
@@ -297,6 +308,14 @@ app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
 
   if (importance !== undefined && !validImportance(importance)) {
     return res.status(400).json({ error: "Importance must be GREEN, AMBER, or RED" });
+  }
+
+  if (description !== undefined && parsedDescription === undefined) {
+    return res.status(400).json({ error: "Description must be text or null" });
+  }
+
+  if (dueDate !== undefined && parsedDueDate === undefined) {
+    return res.status(400).json({ error: "dueDate must be a valid YYYY-MM-DD date or null" });
   }
 
   try {
@@ -315,6 +334,8 @@ app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
         title: name.trim(),
         bucketId: bucket.id,
         ...(importance !== undefined ? { importance } : {}),
+        ...(description !== undefined ? { description: parsedDescription } : {}),
+        ...(dueDate !== undefined ? { dueDate: parsedDueDate } : {}),
       },
     });
 
@@ -325,11 +346,13 @@ app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
   }
 });
 
-// PATCH updates only the supplied fields; the existing PUT route still handles
-// renaming. For example, { isDone: true } leaves the importance unchanged.
+// PATCH updates only the supplied fields. For example, { isDone: true } leaves
+// the task's name, description, due date, and importance unchanged.
 app.patch("/api/tasks/:id", async (req, res) => {
   const { id } = req.params;
-  const { isDone, importance } = req.body ?? {};
+  const { isDone, importance, name, description, dueDate } = req.body ?? {};
+  const parsedDescription = parseDescription(description);
+  const parsedDueDate = dueDate === undefined ? undefined : parseDueDate(dueDate);
 
   // Check the actual JSON values before passing them to Prisma. In particular,
   // the string "false" is not the same as the boolean false.
@@ -341,8 +364,20 @@ app.patch("/api/tasks/:id", async (req, res) => {
     return res.status(400).json({ error: "Importance must be GREEN, AMBER, or RED" });
   }
 
-  if (isDone === undefined && importance === undefined) {
-    return res.status(400).json({ error: "Provide isDone or importance to update" });
+  if (name !== undefined && !validName(name)) {
+    return res.status(400).json({ error: "Task name is required" });
+  }
+
+  if (description !== undefined && parsedDescription === undefined) {
+    return res.status(400).json({ error: "Description must be text or null" });
+  }
+
+  if (dueDate !== undefined && parsedDueDate === undefined) {
+    return res.status(400).json({ error: "dueDate must be a valid YYYY-MM-DD date or null" });
+  }
+
+  if (isDone === undefined && importance === undefined && name === undefined && description === undefined && dueDate === undefined) {
+    return res.status(400).json({ error: "Provide a task field to update" });
   }
 
   try {
@@ -365,6 +400,10 @@ app.patch("/api/tasks/:id", async (req, res) => {
       data: {
         ...(isDone !== undefined ? { isDone } : {}),
         ...(importance !== undefined ? { importance } : {}),
+        // The API calls this "name" while Prisma calls the Task column "title".
+        ...(name !== undefined ? { title: name.trim() } : {}),
+        ...(description !== undefined ? { description: parsedDescription } : {}),
+        ...(dueDate !== undefined ? { dueDate: parsedDueDate } : {}),
       },
     });
 
@@ -372,6 +411,31 @@ app.patch("/api/tasks/:id", async (req, res) => {
   } catch (error) {
     console.error("Update task status error:", error);
     return res.status(500).json({ error: "Failed to update task" });
+  }
+});
+
+// This endpoint changes only dueDate; completion, importance, and title are
+// preserved. The frontend date input sends YYYY-MM-DD, or null to clear it.
+app.patch("/api/tasks/:id/due-date", async (req, res) => {
+  const dueDate = parseDueDate(req.body?.dueDate);
+  if (dueDate === undefined) {
+    return res.status(400).json({ error: "dueDate must be a valid YYYY-MM-DD date or null" });
+  }
+
+  try {
+    const task = await prisma.task.findFirst({
+      where: { id: req.params.id, bucket: { folder: { userId: currentUserId(res) } } },
+    });
+    if (!task) return res.status(404).json({ error: "Task not found" });
+
+    const updatedTask = await prisma.task.update({
+      where: { id: task.id },
+      data: { dueDate },
+    });
+    return res.status(200).json(updatedTask);
+  } catch (error) {
+    console.error("Update task due date error:", error);
+    return res.status(500).json({ error: "Failed to update task due date" });
   }
 });
 
@@ -477,6 +541,36 @@ app.post("/api/tasks/:taskId/subtasks", async (req, res) => {
   } catch (error) {
     console.error("Create subtask error:", error);
     return res.status(500).json({ error: "Failed to create subtask" });
+  }
+});
+
+// Subtask completion is independent of its parent task. The frontend sends
+// true to complete it or false to reopen it; neither changes the task's status.
+app.patch("/api/subtasks/:id", async (req, res) => {
+  const { isDone } = req.body ?? {};
+  if (typeof isDone !== "boolean") {
+    return res.status(400).json({ error: "isDone must be a boolean" });
+  }
+
+  try {
+    // Follow Subtask -> Task -> Bucket -> Folder before writing. The same 404
+    // hides both missing subtasks and records belonging to another user.
+    const subtask = await prisma.subtask.findFirst({
+      where: {
+        id: req.params.id,
+        task: { bucket: { folder: { userId: currentUserId(res) } } },
+      },
+    });
+    if (!subtask) return res.status(404).json({ error: "Subtask not found" });
+
+    const updatedSubtask = await prisma.subtask.update({
+      where: { id: subtask.id },
+      data: { isDone },
+    });
+    return res.status(200).json(updatedSubtask);
+  } catch (error) {
+    console.error("Update subtask completion error:", error);
+    return res.status(500).json({ error: "Failed to update subtask" });
   }
 });
 

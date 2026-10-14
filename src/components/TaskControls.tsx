@@ -1,26 +1,34 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Circle } from "lucide-react";
+import { useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/react";
 import { useAuthenticatedApi } from "../hooks/useAuthenticatedApi";
 import { apiQueryKey } from "../hooks/useWorkspaceData";
 import { importanceColorClasses, importanceLabels } from "../lib/taskImportance";
 import type { Task } from "../types/entities";
+import { CompletionToggle } from "./CompletionToggle";
+import { useToast } from "../toast/useToast";
 
 type TaskControlsProps = {
+  showCompletion?: boolean;
+  /** Task detail keeps importance read-only; bucket rows may show its quick controls. */
+  showImportance?: boolean;
   task: Task;
 };
 
-type TaskUpdate = Pick<Task, "isDone" | "importance">;
+type TaskUpdate = Pick<Task, "importance">;
 
 const importanceValues: Task["importance"][] = ["GREEN", "AMBER", "RED"];
 
-export function TaskControls({ task }: TaskControlsProps) {
+export function TaskControls({ task, showCompletion = true, showImportance = true }: TaskControlsProps) {
   const request = useAuthenticatedApi();
   const queryClient = useQueryClient();
   const { userId } = useAuth();
   const tasksKey = apiQueryKey(userId, "/api/tasks");
+  const mutationKey = [...tasksKey, task.id, "update"];
+  const isSaving = useIsMutating({ mutationKey }) > 0;
+  const toast = useToast();
 
   const updateTask = useMutation({
+    mutationKey,
     mutationFn: (update: Partial<TaskUpdate>) =>
       request<Task>(`/api/tasks/${task.id}`, {
         method: "PATCH",
@@ -28,7 +36,7 @@ export function TaskControls({ task }: TaskControlsProps) {
       }),
     onMutate: async (update) => {
       await queryClient.cancelQueries({ queryKey: tasksKey });
-      const previousTasks = queryClient.getQueryData<Task[]>(tasksKey);
+      const previousTask = queryClient.getQueryData<Task[]>(tasksKey)?.find((item) => item.id === task.id);
 
       // Update the shared list before the network request finishes, so the
       // task detail, bucket page, and folder preview all feel immediate.
@@ -38,7 +46,7 @@ export function TaskControls({ task }: TaskControlsProps) {
         ),
       );
 
-      return { previousTasks };
+      return { previousTask };
     },
     onSuccess: (updatedTask) => {
       // Replace the optimistic copy with the database's authoritative task.
@@ -46,37 +54,29 @@ export function TaskControls({ task }: TaskControlsProps) {
         current.map((currentTask) => currentTask.id === task.id ? updatedTask : currentTask),
       );
     },
-    onError: (_error, _update, context) => {
+    onError: (error, _update, context) => {
       // If PATCH fails, restore the snapshot so the UI never claims a change
       // that the backend did not save.
-      queryClient.setQueryData(tasksKey, context?.previousTasks);
+      if (context?.previousTask) {
+        const previousTask = context.previousTask;
+        queryClient.setQueryData<Task[]>(tasksKey, (current = []) =>
+          current.map((item) => item.id === task.id ? previousTask : item),
+        );
+      }
+      toast.error(error instanceof Error ? error.message : "Unable to update importance.");
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: tasksKey }),
+    onSettled: () => {
+      if (queryClient.isMutating({ mutationKey: tasksKey }) === 1) {
+        return queryClient.invalidateQueries({ queryKey: tasksKey });
+      }
+    },
   });
-
-  function toggleCompletion() {
-    // Do not use a truthiness check here. Sending false explicitly is what
-    // tells the backend to reopen a task that was previously completed.
-    updateTask.mutate({ isDone: !task.isDone });
-  }
 
   return (
     <div className="flex items-center gap-1.5">
-      <button
-        aria-label={task.isDone ? "Mark task as incomplete" : "Mark task as complete"}
-        aria-pressed={task.isDone}
-        className="grid h-8 w-8 place-items-center rounded-full text-[#a49b94] outline-none transition hover:bg-[#f3f1ef] focus:ring-2 focus:ring-[#d95d47] disabled:cursor-not-allowed disabled:opacity-50 dark:text-[#847b74] dark:hover:bg-[#302d29]"
-        disabled={updateTask.isPending}
-        onClick={toggleCompletion}
-        title={task.isDone ? "Mark task as incomplete" : "Mark task as complete"}
-        type="button"
-      >
-        {task.isDone
-          ? <span className="grid h-5 w-5 place-items-center rounded-full bg-[#c84b37] text-white"><Check aria-hidden="true" size={13} strokeWidth={3} /></span>
-          : <Circle aria-hidden="true" size={21} strokeWidth={1.5} />}
-      </button>
+      {showCompletion && <CompletionToggle kind="task" record={task} />}
 
-      <div aria-label="Task importance" className="flex items-center gap-1" role="group">
+      {showImportance && <div aria-label="Task importance" className="flex items-center gap-1" role="group">
         {importanceValues.map((importance) => {
           const label = importanceLabels[importance];
           const selected = task.importance === importance;
@@ -85,7 +85,7 @@ export function TaskControls({ task }: TaskControlsProps) {
               aria-label={`Set importance to ${label}`}
               aria-pressed={selected}
               className={`grid h-7 w-7 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] focus:ring-2 focus:ring-[#d95d47] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29] ${selected ? "ring-2 ring-[#353535] ring-offset-2 dark:ring-[#eee9e4] dark:ring-offset-[#1b1a18]" : ""}`}
-              disabled={updateTask.isPending}
+              disabled={isSaving || updateTask.isPending}
               key={importance}
               onClick={() => updateTask.mutate({ importance })}
               title={`Set importance to ${label}`}
@@ -95,7 +95,7 @@ export function TaskControls({ task }: TaskControlsProps) {
             </button>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }

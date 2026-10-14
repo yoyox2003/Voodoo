@@ -1,10 +1,23 @@
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router";
 import { ApiError } from "../lib/api";
 
-type PageFrameProps = { children: ReactNode; eyebrow?: string; title: ReactNode };
+type PageFrameProps = { children: ReactNode; eyebrow?: string; title: ReactNode; wide?: boolean };
 
-export function PageFrame({ children, eyebrow, title }: PageFrameProps) {
-  return <main className="mx-auto max-w-[900px] px-6 py-10 sm:px-10 lg:px-12 lg:py-14">
+export function PageFrame({ children, eyebrow, title, wide = false }: PageFrameProps) {
+  const navigate = useNavigate();
+
+  return <main className={`mx-auto px-6 py-10 sm:px-10 lg:px-12 lg:py-14 ${wide ? "max-w-[1200px]" : "max-w-[900px]"}`}>
+    <button
+      aria-label="Go back"
+      className="mb-6 inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-[#716a64] transition hover:bg-[#f3f1ef] hover:text-[#c84b37] focus:outline-none focus:ring-2 focus:ring-[#d95d47] focus:ring-offset-2 dark:text-[#b9b1aa] dark:hover:bg-[#302d29] dark:hover:text-[#ffad9b] dark:focus:ring-offset-[#1e1c1a]"
+      onClick={() => navigate(-1)}
+      type="button"
+    >
+      <ArrowLeft aria-hidden="true" size={18} />
+      Back
+    </button>
     {eyebrow && <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#c84b37] dark:text-[#ff9d87]">{eyebrow}</p>}
     <h1 className="text-3xl font-bold tracking-[-0.025em] sm:text-[32px]">{title}</h1>
     {children}

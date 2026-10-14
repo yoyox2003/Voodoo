@@ -1,14 +1,19 @@
 import { ClerkLoaded, ClerkLoading, Show } from "@clerk/react";
 import { Route, Routes } from "react-router";
+import { lazy, Suspense } from "react";
 import { ApiTesterPage } from "./components/ApiTesterPage";
 import { SignInScreen } from "./components/SignInScreen";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { BucketPage } from "./pages/BucketPage";
-import { CalendarPage } from "./pages/CalendarPage";
 import { FolderPage } from "./pages/FolderPage";
 import { HomePage } from "./pages/HomePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { TaskPage } from "./pages/TaskPage";
+import { TaskCreatePage } from "./pages/TaskCreatePage";
+import { TaskEditPage } from "./pages/TaskEditPage";
+
+// Load the calendar library only when visiting its page.
+const CalendarPage = lazy(() => import("./pages/CalendarPage").then((module) => ({ default: module.CalendarPage })));
 
 function App() {
   return (
@@ -31,9 +36,11 @@ function App() {
           <Routes>
             <Route element={<WorkspaceLayout />}>
               <Route index element={<HomePage />} />
-              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="calendar" element={<Suspense fallback={<p className="p-8 text-sm text-[#77716b] dark:text-[#aaa29b]">Loading calendar…</p>}><CalendarPage /></Suspense>} />
               <Route path="folders/:folderId" element={<FolderPage />} />
               <Route path="buckets/:bucketId" element={<BucketPage />} />
+              <Route path="tasks/new" element={<TaskCreatePage />} />
+              <Route path="tasks/:taskId/edit" element={<TaskEditPage />} />
               <Route path="tasks/:taskId" element={<TaskPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
