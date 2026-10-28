@@ -170,7 +170,7 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
   }
 
   return (
-    <PageFrame eyebrow="Task" title="Edit task">
+    <PageFrame backTo={`/tasks/${task.id}`} backLabel="Back to task" eyebrow="Task" title="Edit task">
       <form className="mt-8 grid max-w-2xl gap-6" onSubmit={submit}>
         <label className="grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
           Task name
