@@ -82,7 +82,7 @@ export function BucketPage() {
 
   const tasks = workspace.tasks.filter((task) => task.bucketId === bucket.id);
   return (
-    <PageFrame eyebrow="Bucket" title={bucket.name}>
+    <PageFrame backTo={`/folders/${bucket.folderId}`} backLabel="Back to folder" eyebrow="Bucket" title={bucket.name}>
       {bucket.description && (
         <p className="mt-4 max-w-2xl text-sm leading-6 text-[#716a64] dark:text-[#b9b1aa]">
           {bucket.description}

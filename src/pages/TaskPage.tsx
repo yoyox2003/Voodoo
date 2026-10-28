@@ -30,6 +30,8 @@ export function TaskPage() {
   const subtasks = workspace.subtasks.filter((subtask) => subtask.taskId === task.id);
   return (
     <PageFrame
+      backTo={`/buckets/${task.bucketId}`}
+      backLabel="Back to bucket"
       eyebrow="Task"
       title={
         <span className={task.isDone ? "text-[#958d86] line-through dark:text-[#aaa29b]" : ""}>
