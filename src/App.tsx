@@ -1,5 +1,5 @@
 import { ClerkLoaded, ClerkLoading, Show } from "@clerk/react";
-import { Route, Routes } from "react-router";
+import { Navigate, Route, Routes, useParams } from "react-router";
 import { lazy, Suspense } from "react";
 import { ApiTesterPage } from "./components/ApiTesterPage";
 import { SignInScreen } from "./components/SignInScreen";
@@ -10,7 +10,11 @@ import { HomePage } from "./pages/HomePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { TaskPage } from "./pages/TaskPage";
 import { TaskCreatePage } from "./pages/TaskCreatePage";
-import { TaskEditPage } from "./pages/TaskEditPage";
+
+function LegacyTaskEdit() {
+  const { taskId } = useParams();
+  return <Navigate to={`/tasks/${taskId}`} replace state={{ startEditing: true }} />;
+}
 
 // Load the calendar library only when visiting its page.
 const CalendarPage = lazy(() => import("./pages/CalendarPage").then((module) => ({ default: module.CalendarPage })));
@@ -40,7 +44,7 @@ function App() {
               <Route path="folders/:folderId" element={<FolderPage />} />
               <Route path="buckets/:bucketId" element={<BucketPage />} />
               <Route path="tasks/new" element={<TaskCreatePage />} />
-              <Route path="tasks/:taskId/edit" element={<TaskEditPage />} />
+              <Route path="tasks/:taskId/edit" element={<LegacyTaskEdit />} />
               <Route path="tasks/:taskId" element={<TaskPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>

@@ -2,7 +2,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Link, MemoryRouter, Outlet, Route, Routes } from "react-router";
+import { createMemoryRouter, Link, Outlet, RouterProvider } from "react-router";
 import { useWorkspaceData } from "../src/hooks/useWorkspaceData";
 import { CalendarPage } from "../src/pages/CalendarPage";
 import { TaskPage } from "../src/pages/TaskPage";
@@ -14,13 +14,16 @@ export function Layout() {
   return <><Link to="/calendar">Back to calendar</Link><Outlet context={workspace} /></>;
 }
 
+const router = createMemoryRouter([{ element: <Layout />, children: [
+  { path: "/calendar", element: <CalendarPage /> },
+  { path: "/tasks/:taskId", element: <TaskPage /> },
+] }], { initialEntries: ["/calendar"] });
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })}>
       <ToastProvider>
-        <MemoryRouter initialEntries={["/calendar"]}>
-          <Routes><Route element={<Layout />}><Route path="calendar" element={<CalendarPage />} /><Route path="tasks/:taskId" element={<TaskPage />} /></Route></Routes>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,

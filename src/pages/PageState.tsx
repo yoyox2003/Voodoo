@@ -4,20 +4,24 @@ import { useLocation, useNavigate } from "react-router";
 import { ApiError } from "../lib/api";
 
 type PageFrameProps = {
+  action?: ReactNode;
   backTo?: string;
   backLabel?: string;
   children: ReactNode;
   eyebrow?: string;
   title: ReactNode;
+  titleLeading?: ReactNode;
   wide?: boolean;
 };
 
 export function PageFrame({
+  action,
   backTo,
   backLabel = "Back",
   children,
   eyebrow,
   title,
+  titleLeading,
   wide = false,
 }: PageFrameProps) {
   const navigate = useNavigate();
@@ -65,7 +69,13 @@ export function PageFrame({
           {eyebrow}
         </p>
       )}
-      <h1 className="text-3xl font-bold tracking-[-0.025em] sm:text-[32px]">{title}</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-1">
+          {titleLeading && <div className="shrink-0">{titleLeading}</div>}
+          <h1 className="min-w-0 break-words text-3xl font-bold tracking-[-0.025em] sm:text-[32px]">{title}</h1>
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
       {children}
     </main>
   );
