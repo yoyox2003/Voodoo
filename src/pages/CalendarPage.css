@@ -32,6 +32,13 @@
 
 .voodoo-calendar-cell { min-height: 110px; }
 .voodoo-day-selected { box-shadow: inset 0 0 0 2px #c84b37; }
+.voodoo-event { transition: filter 160ms ease; }
+@media (hover: hover) {
+  .voodoo-event:hover { filter: brightness(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voodoo-event { transition: none; }
+}
 .voodoo-event-completed { opacity: .6; text-decoration: line-through; }
 .voodoo-day-button { min-width: 28px; min-height: 28px; border-radius: 5px; cursor: pointer; }
 .voodoo-day-button:hover { background: var(--fc-classic-muted); }

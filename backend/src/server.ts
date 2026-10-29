@@ -327,14 +327,14 @@ app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
       return res.status(404).json({ error: "Bucket not found" });
     }
 
-    const first = await prisma.task.aggregate({ where: { bucketId: bucket.id }, _min: { position: true } });
+    const last = await prisma.task.aggregate({ where: { bucketId: bucket.id }, _max: { position: true } });
     const task = await prisma.task.create({
       // Omitted importance uses the schema's GREEN default. We do not set
       // isDone here, so Prisma uses the schema's false default for new tasks.
       data: {
         title: name.trim(),
         bucketId: bucket.id,
-        position: (first._min.position ?? 1) - 1,
+        position: (last._max.position ?? -1) + 1,
         ...(importance !== undefined ? { importance } : {}),
         ...(description !== undefined ? { description: parsedDescription } : {}),
         ...(dueDate !== undefined ? { dueDate: parsedDueDate } : {}),
@@ -345,6 +345,34 @@ app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
   } catch (error) {
     console.error("Create task error:", error);
     return res.status(500).json({ error: "Failed to create task" });
+  }
+});
+
+// Sort only when requested, preserving the current order within each priority.
+app.patch("/api/buckets/:bucketId/tasks/sort", async (req, res) => {
+  try {
+    const tasks = await prisma.$transaction(async (tx) => {
+      const bucket = await tx.bucket.findFirst({
+        where: { id: req.params.bucketId, folder: { userId: currentUserId(res) } },
+      });
+      if (!bucket) return null;
+
+      const ordered = await tx.task.findMany({
+        where: { bucketId: bucket.id },
+        orderBy: [{ position: "asc" }, { createdAt: "desc" }, { id: "asc" }],
+      });
+      const priority = { RED: 0, AMBER: 1, GREEN: 2 };
+      ordered.sort((a, b) => priority[a.importance] - priority[b.importance]);
+      for (let position = 0; position < ordered.length; position++) {
+        await tx.task.update({ where: { id: ordered[position].id }, data: { position } });
+      }
+      return tx.task.findMany({ where: { bucketId: bucket.id }, orderBy: [{ position: "asc" }, { id: "asc" }] });
+    }, { isolationLevel: "Serializable" });
+    if (!tasks) return res.status(404).json({ error: "Bucket not found" });
+    return res.status(200).json(tasks);
+  } catch (error) {
+    console.error("Sort tasks error:", error);
+    return res.status(500).json({ error: "Failed to sort tasks" });
   }
 });
 

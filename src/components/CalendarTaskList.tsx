@@ -2,6 +2,8 @@ import { Link } from "react-router";
 import type { WorkspaceData } from "../hooks/useWorkspaceData";
 import { formatCalendarDay, tasksDueOn } from "../lib/dueDates";
 import { CompletionToggle } from "./CompletionToggle";
+import { CompletionProgress } from "./CompletionProgress";
+import { taskProgress } from "../lib/completionProgress";
 
 type CalendarTaskListProps = {
   day: string;
@@ -22,12 +24,12 @@ export function CalendarTaskList({ day, title, workspace }: CalendarTaskListProp
       </div>
       <p className="mt-1 text-xs text-[#77716b] dark:text-[#aaa29b]">{formatCalendarDay(day)}</p>
       {tasks.length === 0 ? <p className="mt-5 text-sm text-[#77716b] dark:text-[#aaa29b]">No tasks due on this day.</p> : (
-        <ul className="mt-4 border-t border-[#e9e5e2] dark:border-[#393531]">
+        <ul className="mt-4 grid gap-2">
           {tasks.map((task) => {
             const bucket = buckets.get(task.bucketId);
             const folder = bucket ? folders.get(bucket.folderId) : undefined;
             return (
-              <li className="flex items-start gap-1.5 border-b border-[#efebe8] py-3 dark:border-[#312e2b]" key={task.id}>
+              <li className="flex min-w-0 items-start gap-1.5 rounded-md border border-[#e9e5e2] px-3 py-3 dark:border-[#393531]" key={task.id}>
                 <span className="-ml-1.5 -mt-1.5 shrink-0 rounded-full focus-within:ring-2 focus-within:ring-[#d95d47]">
                   <CompletionToggle kind="task" record={task} />
                 </span>
@@ -37,6 +39,7 @@ export function CalendarTaskList({ day, title, workspace }: CalendarTaskListProp
                     <span className="mt-1 block text-xs text-[#77716b] dark:text-[#aaa29b]">{[folder?.name, bucket?.name].filter(Boolean).join(" / ")}{task.isDone ? " · Completed" : ""}</span>
                   </span>
                 </Link>
+                <CompletionProgress label={`${task.title} progress`} value={taskProgress(task, workspace.subtasks.filter((subtask) => subtask.taskId === task.id))} />
               </li>
             );
           })}

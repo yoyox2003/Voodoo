@@ -1,11 +1,12 @@
 import { UserButton, useUser } from "@clerk/react";
-import { CalendarDays, ChevronDown, ChevronRight, Folder, FolderPlus, Home, Menu, Plus, X } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronRight, FolderPlus, Home, Menu, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useTheme } from "../hooks/useTheme";
 import { useWorkspaceData } from "../hooks/useWorkspaceData";
 import type { Folder as FolderEntity } from "../types/entities";
 import { CreateWorkspaceItemDialog } from "./CreateWorkspaceItemDialog";
+import { SidebarFolderActions } from "./SidebarFolderActions";
 import { ThemeToggle } from "./ThemeToggle";
 import { BucketDrop, WorkspaceDrag } from "./WorkspaceDrag";
 
@@ -114,7 +115,9 @@ export function WorkspaceLayout() {
                       <button aria-controls={`folder-buckets-${folder.id}`} aria-expanded={isExpanded} aria-label={`${isExpanded ? "Collapse" : "Expand"} ${folder.name}`} className="ml-1 rounded p-1 text-[#8a837c] hover:bg-[#eeeae7] focus-visible:ring-2 focus-visible:ring-[#d95d47] dark:text-[#aaa29b] dark:hover:bg-[#302d29]" onClick={() => toggleFolder(folder.id, isExpanded)} type="button">
                         {isExpanded ? <ChevronDown aria-hidden="true" size={15} /> : <ChevronRight aria-hidden="true" size={15} />}
                       </button>
-                      <NavLink viewTransition className={({ isActive }) => `${itemClass(isActive)} min-w-0 flex-1 px-1.5`} onClick={() => { setFolderExpansion((current) => ({ ...current, [folder.id]: true })); closeSidebar(); }} to={`/folders/${folder.id}`}><Folder aria-hidden="true" size={16} /><span className="truncate">{folder.name}</span></NavLink>
+                      <div className={`flex min-w-0 flex-1 items-center rounded-md ${pathname === `/folders/${folder.id}` ? "bg-[#fff0e9] dark:bg-[#442c27]" : ""}`}>
+                        <SidebarFolderActions folder={folder} buckets={folderBuckets} tasks={workspace.tasks} active={isFolderActive} linkClass={itemClass} onNavigate={() => { setFolderExpansion((current) => ({ ...current, [folder.id]: true })); closeSidebar(); }} />
+                      </div>
                       <button aria-label={`Add a bucket to ${folder.name}`} className="mr-1 rounded p-1 text-[#8a837c] opacity-100 hover:bg-[#eeeae7] hover:text-[#c84b37] dark:text-[#aaa29b] dark:hover:bg-[#302d29] dark:hover:text-[#ffad9b] lg:opacity-0 lg:group-hover:opacity-100" onClick={() => setCreateTarget({ kind: "bucket", folder })} type="button"><Plus aria-hidden="true" size={15} /></button>
                     </div>
                     <div aria-hidden={!isExpanded} className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} id={`folder-buckets-${folder.id}`} inert={!isExpanded}>

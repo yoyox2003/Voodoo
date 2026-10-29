@@ -88,6 +88,32 @@ test("task and subtask ordering API", async (t) => {
     assert.equal((await request("/api/tasks/one/move", { bucketId: "b", beforeTaskId: "two" })).status, 400);
     assert.equal(tasks.find((item) => item.id === "one").bucketId, "a");
   });
+  await t.test("sorts by importance while preserving equal-priority order", async () => {
+    reset();
+    tasks = [
+      { id: "green", bucketId: "a", position: 0, importance: "GREEN" },
+      { id: "red-one", bucketId: "a", position: 1, importance: "RED" },
+      { id: "amber", bucketId: "a", position: 2, importance: "AMBER" },
+      { id: "red-two", bucketId: "a", position: 3, importance: "RED" },
+      { id: "other", bucketId: "b", position: 0, importance: "RED" },
+    ];
+    const response = await request("/api/buckets/a/tasks/sort", {});
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body.map((item) => item.id), ["red-one", "red-two", "amber", "green"]);
+    assert.deepEqual(response.body.map((item) => item.position), [0, 1, 2, 3]);
+    assert.equal(tasks.find((item) => item.id === "other").position, 0);
+    assert.equal((await request("/api/buckets/other/tasks/sort", {})).status, 404);
+    assert.equal((await request("/api/buckets/a/tasks/sort", {}, null)).status, 401);
+  });
+  await t.test("failed sorting rolls back all positions", async () => {
+    reset();
+    tasks[0].importance = "GREEN";
+    tasks[1].importance = "RED";
+    const before = structuredClone(tasks);
+    failWrite = 2;
+    assert.equal((await request("/api/buckets/a/tasks/sort", {})).status, 500);
+    assert.deepEqual(tasks, before);
+  });
   await t.test("subtask order checks membership and ownership", async () => {
     reset();
     const url = "/api/tasks/one/subtasks/order";

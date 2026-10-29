@@ -1,6 +1,7 @@
 import { useAuth } from "@clerk/react";
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   closestCenter,
@@ -21,11 +22,14 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Menu } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useAuthenticatedApi } from "../hooks/useAuthenticatedApi";
 import { apiQueryKey, type WorkspaceData } from "../hooks/useWorkspaceData";
 import { useToast } from "../toast/useToast";
 import type { Task } from "../types/entities";
+import { TaskImportance } from "./TaskImportance";
+import { TaskMarker } from "./TaskMarker";
 
 // When a row and its bucket both contain the pointer, prefer the row so the
 // task can be inserted precisely. Empty buckets and sidebar targets still win
@@ -113,6 +117,7 @@ export function WorkspaceDrag({
   const queryClient = useQueryClient();
   const { userId } = useAuth();
   const toast = useToast();
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const key = apiQueryKey(userId, "/api/tasks");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -172,6 +177,7 @@ export function WorkspaceDrag({
   });
 
   function onDragEnd({ active, over }: DragEndEvent) {
+    setDraggedTask(null);
     onTaskDragFinish?.();
     if (!over || active.data.current?.kind !== "task" || move.isPending) return;
     const source = workspace.tasks.find((task) => task.id === active.data.current?.taskId);
@@ -210,11 +216,42 @@ export function WorkspaceDrag({
     <DndContext
       sensors={sensors}
       collisionDetection={taskCollision}
-      onDragStart={onTaskDragStart}
-      onDragCancel={onTaskDragFinish}
+      onDragStart={({ active }) => {
+        setDraggedTask(
+          workspace.tasks.find((task) => task.id === active.data.current?.taskId) ?? null,
+        );
+        onTaskDragStart?.();
+      }}
+      onDragCancel={() => {
+        setDraggedTask(null);
+        onTaskDragFinish?.();
+      }}
       onDragEnd={onDragEnd}
     >
       {children}
+      {createPortal(
+        <DragOverlay dropAnimation={null} style={{ pointerEvents: "none", zIndex: 100 }}>
+          {draggedTask && (
+            // The preview lives outside the bucket's clipped container so it
+            // can follow the pointer across bucket and sidebar boundaries.
+            <div
+              aria-hidden="true"
+              data-task-drag-preview
+              className="flex min-h-12 items-center gap-3 rounded-lg border border-[#e9e5e2] bg-[#fffdfc] px-3 py-2 text-[15px] font-medium shadow-lg dark:border-[#494642] dark:bg-[#252220] dark:text-[#f3efea]"
+            >
+              <Menu aria-hidden="true" className="shrink-0 text-[#aaa29b]" size={16} />
+              <TaskMarker done={draggedTask.isDone} />
+              <TaskImportance importance={draggedTask.importance} />
+              <span
+                className={`min-w-0 truncate ${draggedTask.isDone ? "text-[#958d86] line-through dark:text-[#aaa29b]" : ""}`}
+              >
+                {draggedTask.title}
+              </span>
+            </div>
+          )}
+        </DragOverlay>,
+        document.body,
+      )}
     </DndContext>
   );
 }
@@ -247,11 +284,11 @@ export function SortableTask({ task, children }: { task: Task; children: ReactNo
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
+        transform: isDragging ? undefined : CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : undefined,
+        opacity: isDragging ? 0.25 : undefined,
       }}
-      className="flex min-w-0 items-start gap-1"
+      className="flex min-w-0 items-start gap-1 rounded-md border border-[#e9e5e2] px-2 dark:border-[#393531]"
     >
       <button
         {...attributes}

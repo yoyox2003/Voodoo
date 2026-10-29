@@ -5,7 +5,10 @@ import { ChevronDown, ChevronRight, MoreHorizontal, Plus } from "lucide-react";
 import { Link, useParams } from "react-router";
 import { TaskMarker } from "../components/TaskMarker";
 import { CompletionToggle } from "../components/CompletionToggle";
+import { CompletionProgress } from "../components/CompletionProgress";
+import { bucketProgress, taskProgress } from "../lib/completionProgress";
 import { InlineWorkspaceName } from "../components/InlineWorkspaceName";
+import { ScrollArea } from "../components/ScrollArea";
 import { TaskControls } from "../components/TaskControls";
 import { TaskImportance } from "../components/TaskImportance";
 import { useWorkspaceOutlet } from "../hooks/useWorkspaceOutlet";
@@ -72,7 +75,7 @@ type TaskGroupProps = { subtasks: Subtask[]; task: Task };
 
 function TaskGroup({ subtasks, task }: TaskGroupProps) {
   const [showAllSubtasks, setShowAllSubtasks] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -149,9 +152,23 @@ function TaskGroup({ subtasks, task }: TaskGroupProps) {
     rename.mutate(nextName);
   }
 
-  const visibleSubtasks = showAllSubtasks ? subtasks : subtasks.slice(0, 3);
+  function renderSubtask(subtask: Subtask) {
+    return (
+      <li
+        className="flex items-center gap-2 py-1 text-sm text-[#716a64] dark:text-[#b9b1aa]"
+        key={subtask.id}
+      >
+        <span className="-my-1.5 -ml-1.5 -mr-1.5 shrink-0 rounded-full focus-within:ring-2 focus-within:ring-[#d95d47]">
+          <CompletionToggle kind="subtask" record={subtask} />
+        </span>
+        <span className={subtask.isDone ? "text-[#958d86] line-through dark:text-[#aaa29b]" : ""}>
+          {subtask.title}
+        </span>
+      </li>
+    );
+  }
   return (
-    <section className="border-b border-[#e9e5e2] dark:border-[#393531]">
+    <section>
       <div className="flex min-h-12 items-center gap-3 py-2.5 text-[15px] font-medium">
         {subtasks.length > 0 ? (
           <button
@@ -210,6 +227,7 @@ function TaskGroup({ subtasks, task }: TaskGroupProps) {
             </span>
           </Link>
         )}
+        <CompletionProgress label={`${task.title} progress`} value={taskProgress(task, subtasks)} />
         <div
           className="relative shrink-0"
           onBlur={(event) => {
@@ -285,26 +303,28 @@ function TaskGroup({ subtasks, task }: TaskGroupProps) {
         >
           <div className="min-h-0 overflow-hidden">
             <div className="ml-9 border-l border-[#e9e5e2] pb-3 pl-4 dark:border-[#393531]">
-              <ul className="grid gap-0.5">
-                {visibleSubtasks.map((subtask) => (
-                  <li
-                    className="flex items-center gap-2 py-1 text-sm text-[#716a64] dark:text-[#b9b1aa]"
-                    key={subtask.id}
+              <ScrollArea enabled={subtasks.length > 5} expanded={showAllSubtasks && isExpanded} label={`Subtasks for ${task.title}`} maxHeightClass="max-h-[9.25rem]">
+                <ul className="grid gap-0.5">
+                  {subtasks.slice(0, 3).map(renderSubtask)}
+                </ul>
+                {subtasks.length > 3 && (
+                  <div
+                    aria-hidden={!showAllSubtasks}
+                    className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${showAllSubtasks ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+                    id={`task-extra-subtasks-${task.id}`}
+                    inert={!showAllSubtasks}
                   >
-                    <TaskMarker done={subtask.isDone} />
-                    <span
-                      className={
-                        subtask.isDone ? "text-[#958d86] line-through dark:text-[#aaa29b]" : ""
-                      }
-                    >
-                      {subtask.title}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                    <div className="min-h-0 overflow-hidden">
+                      <ul className="grid gap-0.5 pt-0.5">{subtasks.slice(3).map(renderSubtask)}</ul>
+                    </div>
+                  </div>
+                )}
+              </ScrollArea>
               {subtasks.length > 3 && (
                 <button
-                  className="mt-2 text-sm font-medium text-[#c84b37] hover:underline dark:text-[#ffad9b]"
+                  aria-controls={`task-extra-subtasks-${task.id}`}
+                  aria-expanded={showAllSubtasks}
+                  className="mt-2 text-sm font-medium text-[#c84b37] hover:underline focus-visible:ring-2 focus-visible:ring-[#d95d47] dark:text-[#ffad9b]"
                   onClick={() => setShowAllSubtasks((current) => !current)}
                   type="button"
                 >
@@ -340,8 +360,8 @@ function InlineTaskCreator({ bucketId }: { bucketId: string }) {
     onSuccess: (task) => {
       // All workspace pages use the same list, so the new task appears there too.
       queryClient.setQueryData<Task[]>(tasksKey, (current = []) => [
-        task,
         ...current.filter((item) => item.id !== task.id),
+        task,
       ]);
       setName("");
       setCreating(false);
@@ -369,7 +389,7 @@ function InlineTaskCreator({ bucketId }: { bucketId: string }) {
   return (
     <>
       {creating && (
-        <div className="flex min-h-12 items-center gap-3 border-b border-[#e9e5e2] py-2.5 text-[15px] font-medium dark:border-[#393531]">
+        <div className="mt-2 flex min-h-12 items-center gap-3 rounded-md border border-[#e9e5e2] px-3 py-2.5 text-[15px] font-medium dark:border-[#393531]">
           <span className="grid h-8 w-8 shrink-0 place-items-center">
             <TaskMarker />
           </span>
@@ -417,6 +437,22 @@ function InlineTaskCreator({ bucketId }: { bucketId: string }) {
 export function BucketPage() {
   const { bucketId } = useParams();
   const workspace = useWorkspaceOutlet();
+  const request = useAuthenticatedApi();
+  const queryClient = useQueryClient();
+  const { userId } = useAuth();
+  const toast = useToast();
+  const tasksKey = apiQueryKey(userId, "/api/tasks");
+  const sortTasks = useMutation({
+    mutationFn: (id: string) => request<Task[]>(`/api/buckets/${id}/tasks/sort`, { method: "PATCH" }),
+    onSuccess: (sorted) => {
+      const positions = new Map(sorted.map((task) => [task.id, task.position]));
+      queryClient.setQueryData<Task[]>(tasksKey, (current = []) =>
+        current.map((task) => positions.has(task.id) ? { ...task, position: positions.get(task.id)! } : task),
+      );
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Unable to sort tasks."),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: tasksKey }),
+  });
 
   const bucket = workspace.buckets.find((item) => item.id === bucketId);
 
@@ -448,13 +484,23 @@ export function BucketPage() {
           {bucket.description}
         </p>
       )}
+      <div className="mt-4"><CompletionProgress label={`${bucket.name} progress`} value={bucketProgress(tasks, workspace.subtasks)} /></div>
       <section className="mt-10">
-        <div className="flex h-9 items-center gap-2 border-b border-[#e9e5e2] text-[15px] font-semibold dark:border-[#393531]">
+        <div className="flex h-9 items-center gap-2 text-[15px] font-semibold">
           <ChevronDown aria-hidden="true" size={16} /> Tasks{" "}
           <span className="font-normal text-[#958d86] dark:text-[#aaa29b]">{tasks.length}</span>
+          <button
+            className="ml-auto rounded px-2 py-1 text-sm font-medium text-[#716a64] hover:bg-[#f2eeeb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c84b37] disabled:opacity-50 dark:text-[#b9b1aa] dark:hover:bg-[#393531]"
+            disabled={tasks.length < 2 || sortTasks.isPending}
+            onClick={() => sortTasks.mutate(bucket.id)}
+            type="button"
+          >
+            {sortTasks.isPending ? "Sorting…" : "Auto sort"}
+          </button>
         </div>
         <BucketDrop bucketId={bucket.id}>
           <TaskListOrder tasks={tasks}>
+            <div className="grid gap-2 pt-2">
             {tasks.map((task) => (
               <SortableTask key={task.id} task={task}>
                 <TaskGroup
@@ -468,6 +514,7 @@ export function BucketPage() {
                 />
               </SortableTask>
             ))}
+            </div>
           </TaskListOrder>
         </BucketDrop>
         <InlineTaskCreator key={bucket.id} bucketId={bucket.id} />

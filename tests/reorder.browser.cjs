@@ -46,11 +46,26 @@ async function main() {
     return route.fulfill({ headers: cors, json: data });
   });
   await page.route("**/__reorder_test", (route) => route.fulfill({ contentType: "text/html", body: '<div id="root"></div><script type="module">import RefreshRuntime from "/@react-refresh"; RefreshRuntime.injectIntoGlobalHook(window); window.$RefreshReg$=()=>{}; window.$RefreshSig$=()=>type=>type; window.__vite_plugin_react_preamble_installed__=true; const fixture=await import("/tests/reorder.fixture.tsx"); fixture.startFixture();</script>' }));
-  async function drag(from, to) {
+  async function drag(from, to, { checkPreview = false } = {}) {
     const a = await from.boundingBox(); const b = await to.boundingBox();
-    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+    const start = { x: a.x + a.width / 2, y: a.y + a.height / 2 };
+    const end = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    await page.mouse.move(start.x, start.y);
     await page.mouse.down();
-    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
+    if (checkPreview) {
+      await page.mouse.move(start.x + 10, start.y, { steps: 3 });
+      const preview = page.locator("[data-task-drag-preview]");
+      await preview.waitFor({ state: "visible" });
+      const before = await preview.boundingBox();
+      await page.mouse.move(end.x, end.y, { steps: 12 });
+      await page.waitForTimeout(50);
+      const after = await preview.boundingBox();
+      assert.ok(Math.abs((after.x - before.x) - (end.x - start.x - 10)) < 5, "drag preview should follow horizontal pointer movement");
+      assert.ok(Math.abs((after.y - before.y) - (end.y - start.y)) < 5, "drag preview should follow vertical pointer movement");
+      assert.equal(await preview.evaluate((element) => element.closest('[id^="folder-bucket-tasks-"]')), null, "preview must not be clipped by its original bucket");
+    } else {
+      await page.mouse.move(end.x, end.y, { steps: 12 });
+    }
     await page.mouse.up();
   }
   try {
@@ -71,7 +86,7 @@ async function main() {
     await page.getByRole("button", { name: "Reorder task Alpha" }).waitFor();
     assert.deepEqual((await page.getByRole("button", { name: /Reorder task/ }).evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")))).slice(0, 2), ["Reorder task Alpha", "Reorder task Beta"]);
     let betaMove = page.waitForResponse((response) => response.url().endsWith("/api/tasks/b/move"));
-    await drag(page.getByRole("button", { name: "Reorder task Beta" }), page.getByText("No tasks yet."));
+    await drag(page.getByRole("button", { name: "Reorder task Beta" }), page.getByText("No tasks yet."), { checkPreview: true });
     await betaMove;
     await page.waitForTimeout(300);
     assert.equal(tasks.find((item) => item.id === "b").bucketId, "empty");

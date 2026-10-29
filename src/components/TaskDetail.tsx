@@ -37,6 +37,8 @@ import { PageFrame } from "../pages/PageState";
 import { useToast } from "../toast/useToast";
 import type { Bucket, Folder, Subtask, Task } from "../types/entities";
 import { CompletionToggle } from "./CompletionToggle";
+import { CompletionProgress } from "./CompletionProgress";
+import { taskProgress } from "../lib/completionProgress";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskImportance } from "./TaskImportance";
 import { TaskMarker } from "./TaskMarker";
@@ -523,8 +525,8 @@ export function TaskDetail({
         createdTaskRef.current = created;
         setCreatedTaskId(created.id);
         queryClient.setQueryData<Task[]>(tasksKey, (items = []) => [
-          created,
           ...items.filter((item) => item.id !== created.id),
+          created,
         ]);
         baseline = {
           ...baseline,
@@ -783,6 +785,7 @@ export function TaskDetail({
         </span>
       }
     >
+      <div className="mt-4"><CompletionProgress label={`${creation ? "Task" : task.title} progress`} value={taskProgress(shown, shown.subtasks.filter((subtask) => subtask.title.trim()))} /></div>
       {editing ? (
         <div className="relative mt-3 flex items-center gap-2 text-sm text-[#716a64] dark:text-[#b9b1aa]">
           <CalendarDays aria-hidden="true" size={16} />

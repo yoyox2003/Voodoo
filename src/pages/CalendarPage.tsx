@@ -138,7 +138,9 @@ export function CalendarPage() {
               return "popover";
             }}
             eventClass={(info) =>
-              info.event.extendedProps.completed ? "voodoo-event-completed" : ""
+              info.event.extendedProps.completed
+                ? "voodoo-event voodoo-event-completed"
+                : "voodoo-event"
             }
             eventContent={(info) => (
               <span className="inline-flex max-w-full items-center gap-1">

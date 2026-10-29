@@ -15,6 +15,7 @@ test("task completion and importance API", async (t) => {
   let subtask;
   let subtaskWrites;
   let failSubtaskUpdate;
+  let maxPosition;
   const clerk = {
     clerkMiddleware: () => (req, _res, next) => {
       const userId = req.headers.authorization?.replace("Bearer ", "");
@@ -32,7 +33,11 @@ test("task completion and importance API", async (t) => {
           ? { id: "bucket-1" } : null,
     },
     task: {
-      aggregate: async () => ({ _min: { position: null } }),
+      aggregate: async ({ where, _max }) => {
+        assert.equal(where.bucketId, "bucket-1");
+        assert.equal(_max.position, true);
+        return { _max: { position: maxPosition } };
+      },
       findFirst: async ({ where }) =>
         where.id === task.id && where.bucket.folder.userId === "owner" ? task : null,
       update: async ({ data }) => {
@@ -43,6 +48,7 @@ test("task completion and importance API", async (t) => {
       },
       create: async ({ data }) => {
         writes.push(data);
+        maxPosition = data.position;
         task = { id: "new-task", importance: "GREEN", isDone: false, ...data };
         return task;
       },
@@ -98,6 +104,7 @@ test("task completion and importance API", async (t) => {
     subtaskWrites = [];
     failUpdate = false;
     failSubtaskUpdate = false;
+    maxPosition = null;
   }
   async function request(body, { method = "PATCH", url = "/api/tasks/task-1", user = "owner" } = {}) {
     const response = await fetch(`${baseUrl}${url}`, {
@@ -228,6 +235,14 @@ test("task completion and importance API", async (t) => {
     }
     assert.equal((await request({ name: "Task" }, { ...options, user: "other" })).status, 404);
     assert.equal(writes.length, 0);
+  });
+  await t.test("creation appends to the bucket's saved order", async () => {
+    reset();
+    const options = { method: "POST", url: "/api/buckets/bucket-1/tasks" };
+    assert.equal((await request({ name: "First" }, options)).body.position, 0);
+    assert.equal((await request({ name: "Second" }, options)).body.position, 1);
+    maxPosition = 12;
+    assert.equal((await request({ name: "After reordered tasks" }, options)).body.position, 13);
   });
   await t.test("creation accepts optional description and due date", async () => {
     reset();
