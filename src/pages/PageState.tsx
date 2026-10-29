@@ -47,16 +47,16 @@ export function PageFrame({
       backTimer.current = null;
       setIsGoingBack(false);
       navigate(backTo, { state: { backTransition: true } });
-    }, 180);
+    }, 130);
   }
 
   return (
     <main
-      className={`mx-auto px-6 py-10 sm:px-10 lg:px-12 lg:py-14 ${location.state?.backTransition ? "back-page-enter" : ""} ${isGoingBack ? "back-page-exit" : ""} ${wide ? "max-w-[1200px]" : "max-w-[900px]"}`}
+      className={`workspace-page mx-auto px-6 py-10 sm:px-10 lg:px-12 lg:py-14 ${location.state?.backTransition ? "back-page-enter" : ""} ${isGoingBack ? "back-page-exit" : ""} ${wide ? "max-w-[1200px]" : "max-w-[900px]"}`}
     >
       {backTo && (
         <button
-          className="mb-6 inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-[#716a64] transition hover:bg-[#f3f1ef] hover:text-[#c84b37] focus:outline-none focus:ring-2 focus:ring-[#d95d47] focus:ring-offset-2 dark:text-[#b9b1aa] dark:hover:bg-[#302d29] dark:hover:text-[#ffad9b] dark:focus:ring-offset-[#1e1c1a]"
+          className="mb-6 inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-[#716a64] transition hover:bg-[#f3f1ef] hover:text-[#c84b37] focus:outline-none dark:text-[#b9b1aa] dark:hover:bg-[#302d29] dark:hover:text-[#ffad9b]"
           onClick={goBack}
           type="button"
         >
@@ -72,7 +72,9 @@ export function PageFrame({
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-1">
           {titleLeading && <div className="shrink-0">{titleLeading}</div>}
-          <h1 className="min-w-0 break-words text-3xl font-bold tracking-[-0.025em] sm:text-[32px]">{title}</h1>
+          <h1 className="min-w-0 break-words text-3xl font-bold tracking-[-0.025em] sm:text-[32px]">
+            {title}
+          </h1>
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>

@@ -286,7 +286,7 @@ app.get("/api/tasks", async (_req, res) => {
   try {
     const tasks = await prisma.task.findMany({
       where: { bucket: { folder: { userId: currentUserId(res) } } },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ position: "asc" }, { createdAt: "desc" }, { id: "asc" }],
     });
 
     return res.status(200).json(tasks);
@@ -327,12 +327,14 @@ app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
       return res.status(404).json({ error: "Bucket not found" });
     }
 
+    const first = await prisma.task.aggregate({ where: { bucketId: bucket.id }, _min: { position: true } });
     const task = await prisma.task.create({
       // Omitted importance uses the schema's GREEN default. We do not set
       // isDone here, so Prisma uses the schema's false default for new tasks.
       data: {
         title: name.trim(),
         bucketId: bucket.id,
+        position: (first._min.position ?? 1) - 1,
         ...(importance !== undefined ? { importance } : {}),
         ...(description !== undefined ? { description: parsedDescription } : {}),
         ...(dueDate !== undefined ? { dueDate: parsedDueDate } : {}),
@@ -343,6 +345,36 @@ app.post("/api/buckets/:bucketId/tasks", async (req, res) => {
   } catch (error) {
     console.error("Create task error:", error);
     return res.status(500).json({ error: "Failed to create task" });
+  }
+});
+
+// Move a task within a bucket or to another owned bucket. The destination is
+// rewritten in one transaction so a failed move cannot leave a partial order.
+app.patch("/api/tasks/:id/move", async (req, res) => {
+  const { bucketId, beforeTaskId } = req.body ?? {};
+  if (typeof bucketId !== "string" || !bucketId || (beforeTaskId !== null && typeof beforeTaskId !== "string")) {
+    return res.status(400).json({ error: "Provide a bucketId and a task ID or null for the insertion point" });
+  }
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({ where: { id: req.params.id, bucket: { folder: { userId: currentUserId(res) } } } });
+      const bucket = await tx.bucket.findFirst({ where: { id: bucketId, folder: { userId: currentUserId(res) } } });
+      if (!task || !bucket) return { error: "not-found" as const };
+      const destination = await tx.task.findMany({ where: { bucketId, id: { not: task.id } }, orderBy: [{ position: "asc" }, { createdAt: "desc" }, { id: "asc" }] });
+      const index = beforeTaskId === null ? destination.length : destination.findIndex((item) => item.id === beforeTaskId);
+      if (index < 0) return { error: "invalid-position" as const };
+      const ordered = [...destination];
+      ordered.splice(index, 0, task);
+      for (let position = 0; position < ordered.length; position++) {
+        await tx.task.update({ where: { id: ordered[position].id }, data: { bucketId, position } });
+      }
+      return { tasks: await tx.task.findMany({ where: { bucketId }, orderBy: [{ position: "asc" }, { id: "asc" }] }) };
+    }, { isolationLevel: "Serializable" });
+    if ("error" in result) return res.status(result.error === "not-found" ? 404 : 400).json({ error: result.error === "not-found" ? "Task or bucket not found" : "Insertion point is not in the destination bucket" });
+    return res.status(200).json(result.tasks);
+  } catch (error) {
+    console.error("Move task error:", error);
+    return res.status(500).json({ error: "Failed to move task" });
   }
 });
 
@@ -506,7 +538,7 @@ app.get("/api/subtasks", async (_req, res) => {
   try {
     const subtasks = await prisma.subtask.findMany({
       where: { task: { bucket: { folder: { userId: currentUserId(res) } } } },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
     });
 
     return res.status(200).json(subtasks);
@@ -533,14 +565,40 @@ app.post("/api/tasks/:taskId/subtasks", async (req, res) => {
       return res.status(404).json({ error: "Task not found" });
     }
 
+    const last = await prisma.subtask.aggregate({ where: { taskId: task.id }, _max: { position: true } });
     const subtask = await prisma.subtask.create({
-      data: { title: name.trim(), taskId: task.id },
+      data: { title: name.trim(), taskId: task.id, position: (last._max.position ?? -1) + 1 },
     });
 
     return res.status(201).json(subtask);
   } catch (error) {
     console.error("Create subtask error:", error);
     return res.status(500).json({ error: "Failed to create subtask" });
+  }
+});
+
+app.put("/api/tasks/:taskId/subtasks/order", async (req, res) => {
+  const { ids } = req.body ?? {};
+  if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string") || new Set(ids).size !== ids.length) {
+    return res.status(400).json({ error: "Provide a list of distinct subtask IDs" });
+  }
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({ where: { id: req.params.taskId, bucket: { folder: { userId: currentUserId(res) } } } });
+      if (!task) return { error: "not-found" as const };
+      const existing = await tx.subtask.findMany({ where: { taskId: task.id }, select: { id: true } });
+      const existingIds = new Set(existing.map((item) => item.id));
+      if (ids.length !== existing.length || ids.some((id: string) => !existingIds.has(id))) return { error: "conflict" as const };
+      for (let position = 0; position < ids.length; position++) {
+        await tx.subtask.update({ where: { id: ids[position] }, data: { position } });
+      }
+      return { subtasks: await tx.subtask.findMany({ where: { taskId: task.id }, orderBy: { position: "asc" } }) };
+    }, { isolationLevel: "Serializable" });
+    if ("error" in result) return res.status(result.error === "not-found" ? 404 : 409).json({ error: result.error === "not-found" ? "Task not found" : "Subtasks changed; refresh and try again" });
+    return res.status(200).json(result.subtasks);
+  } catch (error) {
+    console.error("Reorder subtasks error:", error);
+    return res.status(500).json({ error: "Failed to reorder subtasks" });
   }
 });
 

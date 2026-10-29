@@ -66,7 +66,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             >
               {isError ? <CircleAlert aria-hidden="true" className="mt-0.5 shrink-0" size={19} /> : <CircleCheck aria-hidden="true" className="mt-0.5 shrink-0" size={19} />}
               <p className="flex-1 text-sm font-medium leading-5">{toast.message}</p>
-              <button aria-label="Dismiss notification" className="-mr-1 -mt-1 rounded-md p-1 opacity-70 transition hover:bg-black/5 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-current dark:hover:bg-white/10" onClick={() => dismiss(toast.id)} type="button">
+              <button aria-label="Dismiss notification" className="-mr-1 -mt-1 rounded-md p-1 opacity-70 transition hover:bg-black/5 hover:opacity-100 focus:outline-none dark:hover:bg-white/10" onClick={() => dismiss(toast.id)} type="button">
                 <X aria-hidden="true" size={17} />
               </button>
             </div>

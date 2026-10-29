@@ -13,7 +13,7 @@ export function TextField({ label, id, className = "", ...props }: TextFieldProp
     <label className="grid gap-1.5 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]" htmlFor={inputId}>
       {label}
       <input
-        className={`w-full rounded-lg border border-[#dedad4] bg-white px-3 py-2.5 text-[#292827] outline-none placeholder:text-[#a6a19b] focus:border-[#d95d47] focus:ring-2 focus:ring-[#d95d47]/20 dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea] dark:placeholder:text-[#817a73] ${className}`}
+        className={`w-full rounded-lg border border-[#dedad4] bg-white px-3 py-2.5 text-[#292827] outline-none placeholder:text-[#a6a19b] dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea] dark:placeholder:text-[#817a73] ${className}`}
         id={inputId}
         {...props}
       />

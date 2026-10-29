@@ -13,7 +13,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
     <button
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       aria-pressed={isDark}
-      className={`inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold text-[#4d4b48] transition hover:bg-[#f3f1ef] focus:outline-none focus:ring-2 focus:ring-[#d95d47] focus:ring-offset-2 dark:text-[#ece8e3] dark:hover:bg-[#302d29] dark:focus:ring-offset-[#1b1a18] ${compact ? "h-8 w-8" : "h-10 border border-[#dedad4] bg-white px-3 shadow-sm dark:border-[#494642] dark:bg-[#262421]"}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold text-[#4d4b48] transition hover:bg-[#f3f1ef] focus:outline-none dark:text-[#ece8e3] dark:hover:bg-[#302d29] ${compact ? "h-8 w-8" : "h-10 border border-[#dedad4] bg-white px-3 shadow-sm dark:border-[#494642] dark:bg-[#262421]"}`}
       onClick={toggleTheme}
       type="button"
     >

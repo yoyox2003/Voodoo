@@ -72,12 +72,13 @@ function optimisticRecord(
       dueDate: null,
       importance: "GREEN",
       isDone: false,
+      position: 0,
       bucketId: parentId,
       createdAt,
     };
   }
 
-  return { id: temporaryId, title: name, isDone: false, taskId: parentId, createdAt };
+  return { id: temporaryId, title: name, isDone: false, position: 0, taskId: parentId, createdAt };
 }
 
 export function CrudPanel({ activeEntity }: CrudPanelProps) {
@@ -281,7 +282,7 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
             <label className="grid gap-1.5 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
               {detail.label}
               <select
-                className="rounded-lg border border-[#dedad4] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#d95d47] focus:ring-2 focus:ring-[#d95d47]/20 dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
+                className="rounded-lg border border-[#dedad4] bg-white px-3 py-2.5 text-sm outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
                 disabled={parentsQuery.isPending}
                 onChange={(event) => setParentId(event.target.value)}
                 value={parentId}

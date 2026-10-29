@@ -84,14 +84,14 @@ export function TaskControls({ task, showCompletion = true, showImportance = tru
             <button
               aria-label={`Set importance to ${label}`}
               aria-pressed={selected}
-              className={`grid h-7 w-7 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] focus:ring-2 focus:ring-[#d95d47] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29] ${selected ? "ring-2 ring-[#353535] ring-offset-2 dark:ring-[#eee9e4] dark:ring-offset-[#1b1a18]" : ""}`}
+              className="grid h-7 w-7 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29]"
               disabled={isSaving || updateTask.isPending}
               key={importance}
               onClick={() => updateTask.mutate({ importance })}
               title={`Set importance to ${label}`}
               type="button"
             >
-              <span aria-hidden="true" className={`h-3 w-3 rounded-full ${importanceColorClasses[importance]}`} />
+              <span aria-hidden="true" className={`h-3 w-3 rounded-full ${importanceColorClasses[importance]} ${selected ? "ring-1 ring-[#353535] ring-offset-1 dark:ring-[#eee9e4] dark:ring-offset-[#292724]" : ""}`} />
             </button>
           );
         })}

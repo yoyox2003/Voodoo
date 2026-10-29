@@ -174,15 +174,15 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
       <form className="mt-8 grid max-w-2xl gap-6" onSubmit={submit}>
         <label className="grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
           Task name
-          <input autoFocus className="rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none focus:border-[#c84b37] focus:ring-2 focus:ring-[#c84b37]/15 dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("name", event.target.value)} value={form.name} />
+          <input autoFocus className="rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("name", event.target.value)} value={form.name} />
         </label>
         <label className="grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
           Description <span className="font-normal text-[#8b8580] dark:text-[#aaa29b]">Optional</span>
-          <textarea className="min-h-28 rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none focus:border-[#c84b37] focus:ring-2 focus:ring-[#c84b37]/15 dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("description", event.target.value)} value={form.description} />
+          <textarea className="min-h-28 rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("description", event.target.value)} value={form.description} />
         </label>
         <label className="grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
           Due date <span className="font-normal text-[#8b8580] dark:text-[#aaa29b]">Optional</span>
-          <input className="w-fit rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none focus:border-[#c84b37] focus:ring-2 focus:ring-[#c84b37]/15 dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("dueDate", event.target.value)} type="date" value={form.dueDate} />
+          <input className="w-fit rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("dueDate", event.target.value)} type="date" value={form.dueDate} />
         </label>
         <label className="flex w-fit items-center gap-3 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
           <input checked={form.isDone} className="h-4 w-4 accent-[#c84b37]" disabled={saveChanges.isPending} onChange={(event) => updateForm("isDone", event.target.checked)} type="checkbox" />
@@ -194,7 +194,7 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
             {importanceValues.map((importance) => {
               const selected = form.importance === importance;
               const label = importanceLabels[importance];
-              return <button aria-label={`Set importance to ${label}`} aria-pressed={selected} className={`grid h-9 w-9 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] focus:ring-2 focus:ring-[#d95d47] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29] ${selected ? "ring-2 ring-[#353535] ring-offset-2 dark:ring-[#eee9e4] dark:ring-offset-[#1b1a18]" : ""}`} disabled={saveChanges.isPending} key={importance} onClick={() => updateForm("importance", importance)} title={`Set importance to ${label}`} type="button"><span aria-hidden="true" className={`h-3.5 w-3.5 rounded-full ${importanceColorClasses[importance]}`} /></button>;
+              return <button aria-label={`Set importance to ${label}`} aria-pressed={selected} className={`grid h-9 w-9 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29] ${selected ? "ring-2 ring-[#353535] ring-offset-2 dark:ring-[#eee9e4] dark:ring-offset-[#1b1a18]" : ""}`} disabled={saveChanges.isPending} key={importance} onClick={() => updateForm("importance", importance)} title={`Set importance to ${label}`} type="button"><span aria-hidden="true" className={`h-3.5 w-3.5 rounded-full ${importanceColorClasses[importance]}`} /></button>;
             })}
           </div>
         </fieldset>
@@ -207,7 +207,7 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
             <div className="grid gap-3">
               {editedSubtasks.map((subtask, index) => (
                 <div className="flex items-center gap-3" key={subtask.key}>
-                  <input aria-label={`Subtask ${index + 1}`} className="min-w-0 flex-1 rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none focus:border-[#c84b37] focus:ring-2 focus:ring-[#c84b37]/15 dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateSubtask(subtask.key, event.target.value)} value={subtask.title} />
+                  <input aria-label={`Subtask ${index + 1}`} className="min-w-0 flex-1 rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateSubtask(subtask.key, event.target.value)} value={subtask.title} />
                   <Button aria-label={`Remove subtask ${index + 1}`} disabled={saveChanges.isPending} onClick={() => removeSubtask(subtask.key)} variant="danger">Remove</Button>
                 </div>
               ))}

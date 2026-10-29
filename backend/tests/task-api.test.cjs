@@ -32,6 +32,7 @@ test("task completion and importance API", async (t) => {
           ? { id: "bucket-1" } : null,
     },
     task: {
+      aggregate: async () => ({ _min: { position: null } }),
       findFirst: async ({ where }) =>
         where.id === task.id && where.bucket.folder.userId === "owner" ? task : null,
       update: async ({ data }) => {

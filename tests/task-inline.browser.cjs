@@ -94,8 +94,42 @@ async function main() {
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("link", { name: "Home" }).click();
     await page.getByText("Home page").waitFor();
+    await page.getByRole("link", { name: "Bucket", exact: true }).click();
+    await page.getByRole("heading", { level: 1 }).filter({ hasText: "Bucket" }).waitFor();
+    const supportsTransitions = await page.evaluate(() => {
+      if (!document.startViewTransition) return false;
+      const start = document.startViewTransition.bind(document);
+      window.transitionCount = 0;
+      window.transitionAnimations = [];
+      document.startViewTransition = (...args) => {
+        window.transitionCount++;
+        const transition = start(...args);
+        transition.ready.then(() => {
+          const oldPage = getComputedStyle(document.documentElement, "::view-transition-old(workspace-page)");
+          const newPage = getComputedStyle(document.documentElement, "::view-transition-new(workspace-page)");
+          window.transitionAnimations.push({ oldName: oldPage.animationName, oldDuration: oldPage.animationDuration, newName: newPage.animationName, newDuration: newPage.animationDuration, newDelay: newPage.animationDelay });
+          window.pageAnimations = document.getAnimations().filter((animation) => animation.animationName === "forward-page-out" || animation.animationName === "forward-page-in");
+          window.pageAnimations.forEach((animation) => { animation.pause(); animation.currentTime = 0; });
+        }).catch(() => {});
+        return transition;
+      };
+      return true;
+    });
+    await page.getByRole("link", { name: "Changed task" }).click();
+    await page.getByRole("heading", { name: "Changed task" }).waitFor();
+    if (supportsTransitions) {
+      await page.waitForFunction(() => window.transitionAnimations.length > 0);
+      assert.equal(await page.evaluate(() => window.transitionCount), 1);
+      assert.deepEqual(await page.evaluate(() => window.transitionAnimations[0]), { oldName: "forward-page-out", oldDuration: "0.13s", newName: "forward-page-in", newDuration: "0.18s", newDelay: "0.13s" });
+      assert.equal(await page.evaluate(() => window.pageAnimations.length), 2);
+      const firstFrame = await page.screenshot();
+      await page.evaluate(() => window.pageAnimations.forEach((animation) => { animation.currentTime = 90; }));
+      const laterFrame = await page.screenshot();
+      assert.ok(!firstFrame.equals(laterFrame), "Page transition did not visibly animate");
+      await page.evaluate(() => window.pageAnimations.forEach((animation) => animation.play()));
+    }
     assert.deepEqual(errors, []);
-    process.stdout.write("Inline editing browser checks passed.\n");
+    process.stdout.write(`Inline editing browser checks passed. View transitions: ${supportsTransitions ? "verified" : "not supported by test browser"}.\n`);
   } finally { await browser.close(); }
 }
 main().catch((error) => { process.stderr.write(`${error.stack}\n`); process.exitCode = 1; });

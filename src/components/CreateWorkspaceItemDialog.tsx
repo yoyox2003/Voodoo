@@ -66,7 +66,7 @@ export function CreateWorkspaceItemDialog({ onClose, target }: CreateWorkspaceIt
       await queryClient.invalidateQueries({ queryKey: ["api", userId] });
       toast.success(`${itemLabel[0].toUpperCase()}${itemLabel.slice(1)} created successfully.`);
       onClose();
-      navigate("folderId" in created ? `/buckets/${created.id}` : `/folders/${created.id}`);
+      navigate("folderId" in created ? `/buckets/${created.id}` : `/folders/${created.id}`, { viewTransition: true });
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -108,7 +108,7 @@ export function CreateWorkspaceItemDialog({ onClose, target }: CreateWorkspaceIt
         <label className="mt-6 grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]" htmlFor="workspace-item-name">
           {itemLabel === "folder" ? "Folder" : "Bucket"} name
           <input
-            className="rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none placeholder:text-[#a6a19b] focus:border-[#c84b37] focus:ring-2 focus:ring-[#c84b37]/15 dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
+            className="rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none placeholder:text-[#a6a19b] dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
             id="workspace-item-name"
             onChange={(event) => setName(event.target.value)}
             placeholder={`New ${itemLabel}…`}

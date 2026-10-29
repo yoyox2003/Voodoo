@@ -2,8 +2,8 @@ import { ClerkProvider } from "@clerk/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router";
-import App from "./App.tsx";
+import { RouterProvider } from "react-router";
+import { router } from "./router.tsx";
 import "./index.css";
 import { queryClient } from "./lib/queryClient.ts";
 import { ThemeProvider } from "./theme/ThemeProvider.tsx";
@@ -18,8 +18,6 @@ if (!publishableKey) {
     "Missing VITE_CLERK_PUBLISHABLE_KEY. Copy .env.example to .env.local and add your Clerk publishable key.",
   );
 }
-
-const router = createBrowserRouter([{ path: "*", element: <App /> }]);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

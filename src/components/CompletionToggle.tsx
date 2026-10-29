@@ -70,7 +70,7 @@ export function CompletionToggle({ kind, record }: CompletionToggleProps) {
     <button
       aria-label={label}
       aria-pressed={record.isDone}
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] focus:ring-2 focus:ring-[#d95d47] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29]"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29]"
       disabled={isSaving || toggle.isPending}
       onClick={() => {
         // Explicit false reopens a completed item; omission would preserve it.

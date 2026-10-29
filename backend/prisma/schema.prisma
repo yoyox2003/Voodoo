@@ -40,6 +40,7 @@ model Task {
   dueDate     DateTime?
   importance  Importance @default(GREEN)
   isDone      Boolean    @default(false)
+  position    Int        @default(0)
   bucketId    String
   bucket      Bucket     @relation(fields: [bucketId], references: [id])
   subtasks    Subtask[]
@@ -50,6 +51,7 @@ model Subtask {
   id        String  @id @default(uuid())
   title     String
   isDone    Boolean @default(false)
+  position  Int     @default(0)
   taskId    String
   task      Task    @relation(fields: [taskId], references: [id])
   createdAt DateTime @default(now())

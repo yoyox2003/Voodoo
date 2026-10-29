@@ -26,6 +26,7 @@ export type Task = {
   dueDate: string | null;
   importance: "GREEN" | "AMBER" | "RED";
   isDone: boolean;
+  position: number;
   bucketId: string;
   createdAt: string;
 };
@@ -34,6 +35,7 @@ export type Subtask = {
   id: string;
   title: string;
   isDone: boolean;
+  position: number;
   taskId: string;
   createdAt: string;
 };

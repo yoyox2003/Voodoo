@@ -1,12 +1,13 @@
 import { UserButton, useUser } from "@clerk/react";
 import { CalendarDays, ChevronDown, ChevronRight, Folder, FolderPlus, Home, Menu, Plus, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useTheme } from "../hooks/useTheme";
 import { useWorkspaceData } from "../hooks/useWorkspaceData";
 import type { Folder as FolderEntity } from "../types/entities";
 import { CreateWorkspaceItemDialog } from "./CreateWorkspaceItemDialog";
 import { ThemeToggle } from "./ThemeToggle";
+import { BucketDrop, WorkspaceDrag } from "./WorkspaceDrag";
 
 type CreateTarget = { kind: "folder" } | { folder: FolderEntity; kind: "bucket" };
 
@@ -28,9 +29,11 @@ export function WorkspaceLayout() {
   const { user } = useUser();
   const { theme } = useTheme();
   const { pathname } = useLocation();
-  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(() => new Set());
+  const [folderExpansion, setFolderExpansion] = useState<Record<string, boolean>>({});
   const [createTarget, setCreateTarget] = useState<CreateTarget | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDraggingTask, setIsDraggingTask] = useState(false);
+  const sidebarOpenedForDrag = useRef(false);
 
   const activeBucketId = pathId(pathname, "buckets") ?? workspace.tasks.find((task) => task.id === pathId(pathname, "tasks"))?.bucketId;
   const activeFolderId = pathId(pathname, "folders") ?? workspace.buckets.find((bucket) => bucket.id === activeBucketId)?.folderId;
@@ -51,13 +54,8 @@ export function WorkspaceLayout() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [isSidebarOpen]);
 
-  function toggleFolder(folderId: string) {
-    setExpandedFolderIds((current) => {
-      const next = new Set(current);
-      if (next.has(folderId)) next.delete(folderId);
-      else next.add(folderId);
-      return next;
-    });
+  function toggleFolder(folderId: string, isExpanded: boolean) {
+    setFolderExpansion((current) => ({ ...current, [folderId]: !isExpanded }));
   }
 
   function closeSidebar() {
@@ -65,8 +63,17 @@ export function WorkspaceLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fffdfc] text-[#282522] dark:bg-[#1e1c1a] dark:text-[#f3efea] lg:flex">
-      {isSidebarOpen && <button aria-label="Close navigation" className="fixed inset-0 z-30 bg-[#282522]/35 lg:hidden" onClick={closeSidebar} type="button" />}
+    <WorkspaceDrag workspace={workspace} onTaskDragStart={() => {
+      setIsDraggingTask(true);
+      if (window.matchMedia("(max-width: 1023px)").matches && !isSidebarOpen) {
+        sidebarOpenedForDrag.current = true;
+        setIsSidebarOpen(true);
+      }
+    }} onTaskDragFinish={() => {
+      setIsDraggingTask(false);
+      if (sidebarOpenedForDrag.current) { sidebarOpenedForDrag.current = false; setIsSidebarOpen(false); }
+    }}><div className="min-h-screen bg-[#fffdfc] text-[#282522] dark:bg-[#1e1c1a] dark:text-[#f3efea] lg:flex">
+      {isSidebarOpen && <button aria-label="Close navigation" className={`fixed inset-0 z-30 bg-[#282522]/35 lg:hidden ${isDraggingTask ? "pointer-events-none" : ""}`} onClick={closeSidebar} type="button" />}
       <aside
         aria-label="Workspace navigation"
         className={`fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col border-r border-[#e9e5e2] bg-[#faf9f8] px-3 py-4 shadow-xl transition-transform duration-200 dark:border-[#37332f] dark:bg-[#252220] lg:static lg:translate-x-0 lg:shadow-none ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
@@ -84,8 +91,8 @@ export function WorkspaceLayout() {
         </div>
 
         <nav aria-label="Primary navigation" className="mt-6 grid gap-1">
-          <NavLink className={({ isActive }) => itemClass(isActive)} end onClick={closeSidebar} to="/"><Home aria-hidden="true" size={17} /> Home</NavLink>
-          <NavLink className={({ isActive }) => itemClass(isActive)} onClick={closeSidebar} to="/calendar"><CalendarDays aria-hidden="true" size={17} /> Calendar</NavLink>
+          <NavLink viewTransition className={({ isActive }) => itemClass(isActive)} end onClick={closeSidebar} to="/"><Home aria-hidden="true" size={17} /> Home</NavLink>
+          <NavLink viewTransition className={({ isActive }) => itemClass(isActive)} onClick={closeSidebar} to="/calendar"><CalendarDays aria-hidden="true" size={17} /> Calendar</NavLink>
         </nav>
 
         <section className="mt-7 min-h-0 flex-1 overflow-y-auto" aria-labelledby="folders-heading">
@@ -99,21 +106,25 @@ export function WorkspaceLayout() {
             : <ul className="grid gap-0.5">
               {workspace.folders.map((folder) => {
                 const isFolderActive = folder.id === activeFolderId;
-                const isExpanded = expandedFolderIds.has(folder.id) || isFolderActive;
+                const isExpanded = folderExpansion[folder.id] ?? isFolderActive;
                 const folderBuckets = bucketsByFolder.get(folder.id) ?? [];
                 return (
                   <li key={folder.id}>
-                    <div className={`group flex items-center rounded-md ${isFolderActive ? "bg-[#fff6f1] dark:bg-[#332724]" : ""}`}>
-                      <button aria-expanded={isExpanded} aria-label={`${isExpanded ? "Collapse" : "Expand"} ${folder.name}`} className="ml-1 rounded p-1 text-[#8a837c] hover:bg-[#eeeae7] dark:text-[#aaa29b] dark:hover:bg-[#302d29]" onClick={() => toggleFolder(folder.id)} type="button">
+                    <div className="group flex items-center rounded-md">
+                      <button aria-controls={`folder-buckets-${folder.id}`} aria-expanded={isExpanded} aria-label={`${isExpanded ? "Collapse" : "Expand"} ${folder.name}`} className="ml-1 rounded p-1 text-[#8a837c] hover:bg-[#eeeae7] focus-visible:ring-2 focus-visible:ring-[#d95d47] dark:text-[#aaa29b] dark:hover:bg-[#302d29]" onClick={() => toggleFolder(folder.id, isExpanded)} type="button">
                         {isExpanded ? <ChevronDown aria-hidden="true" size={15} /> : <ChevronRight aria-hidden="true" size={15} />}
                       </button>
-                      <NavLink className={({ isActive }) => `${itemClass(isActive)} min-w-0 flex-1 px-1.5`} onClick={closeSidebar} to={`/folders/${folder.id}`}><Folder aria-hidden="true" size={16} /><span className="truncate">{folder.name}</span></NavLink>
+                      <NavLink viewTransition className={({ isActive }) => `${itemClass(isActive)} min-w-0 flex-1 px-1.5`} onClick={() => { setFolderExpansion((current) => ({ ...current, [folder.id]: true })); closeSidebar(); }} to={`/folders/${folder.id}`}><Folder aria-hidden="true" size={16} /><span className="truncate">{folder.name}</span></NavLink>
                       <button aria-label={`Add a bucket to ${folder.name}`} className="mr-1 rounded p-1 text-[#8a837c] opacity-100 hover:bg-[#eeeae7] hover:text-[#c84b37] dark:text-[#aaa29b] dark:hover:bg-[#302d29] dark:hover:text-[#ffad9b] lg:opacity-0 lg:group-hover:opacity-100" onClick={() => setCreateTarget({ kind: "bucket", folder })} type="button"><Plus aria-hidden="true" size={15} /></button>
                     </div>
-                    {isExpanded && <ul className="ml-5 grid gap-0.5 border-l border-[#e9e5e2] py-1 pl-2 dark:border-[#413c38]">
-                      {folderBuckets.length === 0 ? <li className="px-2.5 py-1.5 text-xs text-[#8b8580] dark:text-[#aaa29b]">No buckets yet.</li>
-                        : folderBuckets.map((bucket) => <li key={bucket.id}><NavLink className={({ isActive }) => itemClass(isActive)} onClick={closeSidebar} to={`/buckets/${bucket.id}`}><span aria-hidden="true" className="h-2 w-2 rounded-sm border border-current" /><span className="truncate">{bucket.name}</span></NavLink></li>)}
-                    </ul>}
+                    <div aria-hidden={!isExpanded} className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} id={`folder-buckets-${folder.id}`} inert={!isExpanded}>
+                      <div className="min-h-0 overflow-hidden">
+                        <ul className="ml-5 grid gap-0.5 border-l border-[#e9e5e2] py-1 pl-2 dark:border-[#413c38]">
+                          {folderBuckets.length === 0 ? <li className="px-2.5 py-1.5 text-xs text-[#8b8580] dark:text-[#aaa29b]">No buckets yet.</li>
+                            : folderBuckets.map((bucket) => <li key={bucket.id}><BucketDrop bucketId={bucket.id} sidebar><NavLink viewTransition className={() => itemClass(bucket.id === activeBucketId)} onClick={closeSidebar} to={`/buckets/${bucket.id}`}><span aria-hidden="true" className="h-2 w-2 rounded-sm border border-current" /><span className="truncate">{bucket.name}</span></NavLink></BucketDrop></li>)}
+                        </ul>
+                      </div>
+                    </div>
                   </li>
                 );
               })}
@@ -131,6 +142,6 @@ export function WorkspaceLayout() {
         <Outlet context={workspace} />
       </div>
       <CreateWorkspaceItemDialog key={createTarget ? `${createTarget.kind}-${createTarget.kind === "bucket" ? createTarget.folder.id : "new"}` : "closed"} onClose={() => setCreateTarget(null)} target={createTarget} />
-    </div>
+    </div></WorkspaceDrag>
   );
 }

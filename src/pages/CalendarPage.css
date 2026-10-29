@@ -35,10 +35,8 @@
 .voodoo-event-completed { opacity: .6; text-decoration: line-through; }
 .voodoo-day-button { min-width: 28px; min-height: 28px; border-radius: 5px; cursor: pointer; }
 .voodoo-day-button:hover { background: var(--fc-classic-muted); }
-.voodoo-day-button:focus-visible { outline: 2px solid #c84b37; outline-offset: 1px; }
 .voodoo-calendar-control { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 6px 10px; border: 1px solid var(--fc-classic-border); border-radius: 6px; cursor: pointer; font-size: 13px; }
 .voodoo-calendar-control:hover { background: var(--fc-classic-faint); }
-.voodoo-calendar-control:focus-visible { outline: 2px solid #c84b37; outline-offset: 2px; }
 
 @media (max-width: 639px) {
   .voodoo-calendar { font-size: 11px; }

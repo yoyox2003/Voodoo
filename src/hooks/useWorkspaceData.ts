@@ -50,7 +50,7 @@ export function useWorkspaceData(): WorkspaceData {
   return {
     folders: foldersQuery.data ?? [],
     buckets: bucketsQuery.data ?? [],
-    tasks: tasksQuery.data ?? [],
+    tasks: [...(tasksQuery.data ?? [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
     subtasks: subtasksQuery.data ?? [],
     isLoading: queries.some((query) => query.isPending),
     isError: queries.some((query) => query.isError),
