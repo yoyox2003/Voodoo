@@ -20,5 +20,11 @@ export function TaskPage() {
       </PageFrame>
     );
 
-  return <TaskDetail key={task.id} task={task} subtasks={workspace.subtasks.filter((subtask) => subtask.taskId === task.id)} />;
+  return (
+    <TaskDetail
+      key={task.id}
+      task={task}
+      subtasks={workspace.subtasks.filter((subtask) => subtask.taskId === task.id)}
+    />
+  );
 }

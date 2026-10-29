@@ -1,10 +1,32 @@
 import { useAuth } from "@clerk/react";
 import { useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CalendarDays, CheckSquare, Menu, Plus, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { useBlocker, useLocation, useNavigate } from "react-router";
 import { Button } from "../UI/Button";
 import { useAuthenticatedApi } from "../hooks/useAuthenticatedApi";
@@ -36,21 +58,63 @@ function makeDraft(task: Task, subtasks: Subtask[]): Draft {
     dueDate: dueDateKey(task.dueDate) ?? "",
     importance: task.importance,
     isDone: task.isDone,
-    subtasks: [...subtasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.createdAt.localeCompare(b.createdAt)).map((item) => ({
-      key: item.id,
-      id: item.id,
-      title: item.title,
-      isDone: item.isDone,
-    })),
+    subtasks: [...subtasks]
+      .sort(
+        (a, b) => (a.position ?? 0) - (b.position ?? 0) || a.createdAt.localeCompare(b.createdAt),
+      )
+      .map((item) => ({
+        key: item.id,
+        id: item.id,
+        title: item.title,
+        isDone: item.isDone,
+      })),
   };
 }
 
-function SortableSubtask({ id, title, disabled, children }: { id: string; title: string; disabled: boolean; children: ReactNode }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
-  return <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : undefined }} className="relative flex min-h-12 items-center gap-3 border-b border-[#efebe8] py-2.5 text-[15px] dark:border-[#312e2b]">
-    <button {...attributes} {...listeners} ref={setActivatorNodeRef} aria-label={`Reorder subtask ${title || "new subtask"}`} className="grid h-8 w-7 shrink-0 touch-none cursor-grab place-items-center text-[#aaa29b] active:cursor-grabbing disabled:opacity-50" disabled={disabled} type="button"><Menu aria-hidden="true" size={16} /></button>
-    {children}
-  </li>;
+function SortableSubtask({
+  id,
+  title,
+  disabled,
+  children,
+}: {
+  id: string;
+  title: string;
+  disabled: boolean;
+  children: ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled });
+  return (
+    <li
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : undefined,
+      }}
+      className="relative flex min-h-12 items-center gap-3 border-b border-[#efebe8] py-2.5 text-[15px] dark:border-[#312e2b]"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        ref={setActivatorNodeRef}
+        aria-label={`Reorder subtask ${title || "new subtask"}`}
+        className="grid h-8 w-7 shrink-0 touch-none cursor-grab place-items-center text-[#aaa29b] active:cursor-grabbing disabled:opacity-50"
+        disabled={disabled}
+        type="button"
+      >
+        <Menu aria-hidden="true" size={16} />
+      </button>
+      {children}
+    </li>
+  );
 }
 
 // The invisible mirror gives the editor the same wrapping and height as the text.
@@ -138,15 +202,17 @@ function InlineSubtaskCreator({ taskId }: { taskId: string }) {
   const toast = useToast();
   const subtasksKey = apiQueryKey(userId, "/api/subtasks");
   const create = useMutation({
-    mutationFn: ({ title }: { title: string; addAnother: boolean }) => request<Subtask>(`/api/tasks/${taskId}/subtasks`, {
-      method: "POST",
-      body: JSON.stringify({ name: title }),
-    }),
+    mutationFn: ({ title }: { title: string; addAnother: boolean }) =>
+      request<Subtask>(`/api/tasks/${taskId}/subtasks`, {
+        method: "POST",
+        body: JSON.stringify({ name: title }),
+      }),
     onSuccess: (created, { addAnother }) => {
       // The task page and bucket previews share this cache.
-      queryClient.setQueryData<Subtask[]>(subtasksKey, (current = []) =>
-        [...current.filter((item) => item.id !== created.id), created],
-      );
+      queryClient.setQueryData<Subtask[]>(subtasksKey, (current = []) => [
+        ...current.filter((item) => item.id !== created.id),
+        created,
+      ]);
       setName("");
       setAdding(addAnother);
       focusAfterSave.current = addAnother;
@@ -156,7 +222,9 @@ function InlineSubtaskCreator({ taskId }: { taskId: string }) {
       focusAfterSave.current = true;
       toast.error(error instanceof Error ? error.message : "Unable to add subtask.");
     },
-    onSettled: () => { saving.current = false; },
+    onSettled: () => {
+      saving.current = false;
+    },
   });
 
   // The input is disabled during the request. Focus it again once it is
@@ -184,7 +252,9 @@ function InlineSubtaskCreator({ taskId }: { taskId: string }) {
     <>
       {adding && (
         <div className="flex min-h-12 items-center gap-3 border-b border-[#efebe8] py-2.5 text-[15px] dark:border-[#312e2b]">
-          <span className="grid h-8 w-8 shrink-0 place-items-center"><TaskMarker /></span>
+          <span className="grid h-8 w-8 shrink-0 place-items-center">
+            <TaskMarker />
+          </span>
           <input
             aria-label="New subtask name"
             autoFocus
@@ -194,8 +264,14 @@ function InlineSubtaskCreator({ taskId }: { taskId: string }) {
             onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => {
               if (event.nativeEvent.isComposing) return;
-              if (event.key === "Enter") { event.preventDefault(); finish(true); }
-              if (event.key === "Escape") { event.preventDefault(); event.currentTarget.blur(); }
+              if (event.key === "Enter") {
+                event.preventDefault();
+                finish(true);
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
             }}
             placeholder="Subtask name"
             ref={inputRef}
@@ -206,7 +282,10 @@ function InlineSubtaskCreator({ taskId }: { taskId: string }) {
       <button
         className="flex min-h-11 items-center gap-3 px-2 text-sm text-[#8a837c] transition-colors hover:text-[#c84b37] disabled:opacity-50 dark:text-[#aaa29b] dark:hover:text-[#ffad9b]"
         disabled={adding}
-        onClick={() => { setName(""); setAdding(true); }}
+        onClick={() => {
+          setName("");
+          setAdding(true);
+        }}
         type="button"
       >
         <Plus aria-hidden="true" className="text-[#c84b37] dark:text-[#ff9d87]" size={18} />
@@ -232,7 +311,8 @@ function DeleteSubtaskButton({ subtask }: { subtask: Subtask }) {
         current.filter((item) => item.id !== subtask.id),
       );
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Unable to delete subtask."),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Unable to delete subtask."),
     onSettled: () => {
       if (queryClient.isMutating({ mutationKey: subtasksKey }) === 1) {
         return queryClient.invalidateQueries({ queryKey: subtasksKey });
@@ -264,15 +344,30 @@ function closePickerOnBlur(event: FocusEvent<HTMLDetailsElement>) {
   if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
 }
 
-type CreationOptions = { buckets: Bucket[]; folders: Folder[]; returnTo: string; bucketFromPage?: boolean };
+type CreationOptions = {
+  buckets: Bucket[];
+  folders: Folder[];
+  returnTo: string;
+  bucketFromPage?: boolean;
+};
 
-export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks: Subtask[]; creation?: CreationOptions }) {
+export function TaskDetail({
+  task,
+  subtasks,
+  creation,
+}: {
+  task: Task;
+  subtasks: Subtask[];
+  creation?: CreationOptions;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const initialDraft = () => makeDraft(task, subtasks);
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [saved, setSaved] = useState<Draft>(initialDraft);
-  const [editing, setEditing] = useState(() => Boolean(creation) || location.state?.startEditing === true);
+  const [editing, setEditing] = useState(
+    () => Boolean(creation) || location.state?.startEditing === true,
+  );
   const [bucketId, setBucketId] = useState(task.bucketId);
   const [createdTaskId, setCreatedTaskId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -286,36 +381,57 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
   const toast = useToast();
   const tasksKey = apiQueryKey(userId, "/api/tasks");
   const subtasksKey = apiQueryKey(userId, "/api/subtasks");
-  const subtaskSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const subtaskSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const reorderSubtasks = useMutation({
     mutationKey: [...subtasksKey, task.id, "order"],
-    mutationFn: (ids: string[]) => request<Subtask[]>(`/api/tasks/${task.id}/subtasks/order`, { method: "PUT", body: JSON.stringify({ ids }) }),
+    mutationFn: (ids: string[]) =>
+      request<Subtask[]>(`/api/tasks/${task.id}/subtasks/order`, {
+        method: "PUT",
+        body: JSON.stringify({ ids }),
+      }),
     onMutate: async (ids) => {
       await queryClient.cancelQueries({ queryKey: subtasksKey });
-      const previous = queryClient.getQueryData<Subtask[]>(subtasksKey)?.filter((item) => ids.includes(item.id));
-      queryClient.setQueryData<Subtask[]>(subtasksKey, (items = []) => items.map((item) => {
-        const position = ids.indexOf(item.id);
-        return position < 0 ? item : { ...item, position };
-      }));
+      const previous = queryClient
+        .getQueryData<Subtask[]>(subtasksKey)
+        ?.filter((item) => ids.includes(item.id));
+      queryClient.setQueryData<Subtask[]>(subtasksKey, (items = []) =>
+        items.map((item) => {
+          const position = ids.indexOf(item.id);
+          return position < 0 ? item : { ...item, position };
+        }),
+      );
       return { previous };
     },
     onSuccess: (savedItems) => {
       const savedById = new Map(savedItems.map((item) => [item.id, item]));
-      queryClient.setQueryData<Subtask[]>(subtasksKey, (items = []) => items.map((item) => savedById.get(item.id) ?? item));
+      queryClient.setQueryData<Subtask[]>(subtasksKey, (items = []) =>
+        items.map((item) => savedById.get(item.id) ?? item),
+      );
     },
     onError: (caught, _ids, context) => {
       if (context?.previous) {
         const previous = new Map(context.previous.map((item) => [item.id, item.position]));
-        queryClient.setQueryData<Subtask[]>(subtasksKey, (items = []) => items.map((item) =>
-          previous.has(item.id) ? { ...item, position: previous.get(item.id)! } : item,
-        ));
+        queryClient.setQueryData<Subtask[]>(subtasksKey, (items = []) =>
+          items.map((item) =>
+            previous.has(item.id) ? { ...item, position: previous.get(item.id)! } : item,
+          ),
+        );
       }
       toast.error(caught instanceof Error ? caught.message : "Unable to reorder subtasks.");
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: subtasksKey }),
   });
-  const dirty = editing && (JSON.stringify(draft) !== JSON.stringify(saved) || (Boolean(creation) && bucketId !== task.bucketId));
-  const shouldBlock = useCallback(() => !allowNavigation.current && (dirty || saving), [dirty, saving]);
+  const dirty =
+    editing &&
+    (JSON.stringify(draft) !== JSON.stringify(saved) ||
+      (Boolean(creation) && bucketId !== task.bucketId));
+  const shouldBlock = useCallback(
+    () => !allowNavigation.current && (dirty || saving),
+    [dirty, saving],
+  );
   const blocker = useBlocker(shouldBlock);
 
   useEffect(() => {
@@ -345,7 +461,10 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
     setError(null);
     if (creation) {
       allowNavigation.current = true;
-      void navigate(createdTaskId ? `/tasks/${createdTaskId}` : creation.returnTo, { replace: true, viewTransition: true });
+      void navigate(createdTaskId ? `/tasks/${createdTaskId}` : creation.returnTo, {
+        replace: true,
+        viewTransition: true,
+      });
       return;
     }
     setEditing(false);
@@ -369,7 +488,11 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
       setError("Enter a task name.");
       return;
     }
-    if (creation && !createdTaskRef.current && !creation.buckets.some((bucket) => bucket.id === bucketId)) {
+    if (
+      creation &&
+      !createdTaskRef.current &&
+      !creation.buckets.some((bucket) => bucket.id === bucketId)
+    ) {
       setError("Choose a bucket for this task.");
       return;
     }
@@ -390,13 +513,34 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
       if (creation && !createdTaskRef.current) {
         const created = await request<Task>(`/api/buckets/${bucketId}/tasks`, {
           method: "POST",
-          body: JSON.stringify({ name: current.name.trim(), description: current.description.trim() || null, dueDate: current.dueDate || null, importance: current.importance }),
+          body: JSON.stringify({
+            name: current.name.trim(),
+            description: current.description.trim() || null,
+            dueDate: current.dueDate || null,
+            importance: current.importance,
+          }),
         });
         createdTaskRef.current = created;
         setCreatedTaskId(created.id);
-        queryClient.setQueryData<Task[]>(tasksKey, (items = []) => [created, ...items.filter((item) => item.id !== created.id)]);
-        baseline = { ...baseline, name: created.title, description: created.description ?? "", dueDate: dueDateKey(created.dueDate) ?? "", importance: created.importance, isDone: created.isDone };
-        current = { ...current, name: created.title, description: created.description ?? "", dueDate: dueDateKey(created.dueDate) ?? "", importance: created.importance };
+        queryClient.setQueryData<Task[]>(tasksKey, (items = []) => [
+          created,
+          ...items.filter((item) => item.id !== created.id),
+        ]);
+        baseline = {
+          ...baseline,
+          name: created.title,
+          description: created.description ?? "",
+          dueDate: dueDateKey(created.dueDate) ?? "",
+          importance: created.importance,
+          isDone: created.isDone,
+        };
+        current = {
+          ...current,
+          name: created.title,
+          description: created.description ?? "",
+          dueDate: dueDateKey(created.dueDate) ?? "",
+          importance: created.importance,
+        };
         progress();
       }
       const taskId = createdTaskRef.current?.id ?? task.id;
@@ -494,11 +638,21 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
       }
       // Drafts use temporary keys until creation succeeds. Once all IDs are
       // known, save the exact visible order as one atomic backend operation.
-      const orderedIds = current.subtasks.map((item) => item.id).filter((id): id is string => Boolean(id));
-      if (orderedIds.length === current.subtasks.length && JSON.stringify(orderedIds) !== JSON.stringify(baseline.subtasks.map((item) => item.id))) {
-        const ordered = await request<Subtask[]>(`/api/tasks/${taskId}/subtasks/order`, { method: "PUT", body: JSON.stringify({ ids: orderedIds }) });
+      const orderedIds = current.subtasks
+        .map((item) => item.id)
+        .filter((id): id is string => Boolean(id));
+      if (
+        orderedIds.length === current.subtasks.length &&
+        JSON.stringify(orderedIds) !== JSON.stringify(baseline.subtasks.map((item) => item.id))
+      ) {
+        const ordered = await request<Subtask[]>(`/api/tasks/${taskId}/subtasks/order`, {
+          method: "PUT",
+          body: JSON.stringify({ ids: orderedIds }),
+        });
         const byId = new Map(ordered.map((item) => [item.id, item]));
-        queryClient.setQueryData<Subtask[]>(subtasksKey, (items = []) => items.map((item) => byId.get(item.id) ?? item));
+        queryClient.setQueryData<Subtask[]>(subtasksKey, (items = []) =>
+          items.map((item) => byId.get(item.id) ?? item),
+        );
         baseline.subtasks = [...current.subtasks];
         progress();
       }
@@ -510,7 +664,11 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
       }
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Unable to save task changes.";
-      setError(creation && createdTaskRef.current ? `Task created, but some changes could not be saved. ${message}` : message);
+      setError(
+        creation && createdTaskRef.current
+          ? `Task created, but some changes could not be saved. ${message}`
+          : message,
+      );
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -549,7 +707,13 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
           )}
         </div>
       }
-      backTo={creation ? (createdTaskId ? `/tasks/${createdTaskId}` : creation.returnTo) : `/buckets/${task.bucketId}`}
+      backTo={
+        creation
+          ? createdTaskId
+            ? `/tasks/${createdTaskId}`
+            : creation.returnTo
+          : `/buckets/${task.bucketId}`
+      }
       backLabel={creation ? "Back" : "Back to bucket"}
       eyebrow="Task"
       titleLeading={
@@ -645,11 +809,25 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
       {creation && !creation.bucketFromPage && (
         <label className="mt-4 flex items-center gap-2 text-sm text-[#716a64] dark:text-[#b9b1aa]">
           <span>Bucket</span>
-          <select aria-label="Bucket" className="min-w-0 max-w-full rounded border border-[#dedad4] bg-white px-2 py-1 text-[#292827] outline-none disabled:opacity-60 dark:border-[#494642] dark:bg-[#292724] dark:text-[#f3efea]" disabled={saving || Boolean(createdTaskId)} value={bucketId} onChange={(event) => setBucketId(event.target.value)}>
+          <select
+            aria-label="Bucket"
+            className="min-w-0 max-w-full rounded border border-[#dedad4] bg-white px-2 py-1 text-[#292827] outline-none disabled:opacity-60 dark:border-[#494642] dark:bg-[#292724] dark:text-[#f3efea]"
+            disabled={saving || Boolean(createdTaskId)}
+            value={bucketId}
+            onChange={(event) => setBucketId(event.target.value)}
+          >
             <option value="">Choose a bucket</option>
             {creation.folders.map((folder) => {
               const buckets = creation.buckets.filter((bucket) => bucket.folderId === folder.id);
-              return buckets.length ? <optgroup key={folder.id} label={folder.name}>{buckets.map((bucket) => <option key={bucket.id} value={bucket.id}>{bucket.name}</option>)}</optgroup> : null;
+              return buckets.length ? (
+                <optgroup key={folder.id} label={folder.name}>
+                  {buckets.map((bucket) => (
+                    <option key={bucket.id} value={bucket.id}>
+                      {bucket.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null;
             })}
           </select>
         </label>
@@ -680,94 +858,116 @@ export function TaskDetail({ task, subtasks, creation }: { task: Task; subtasks:
         {shown.subtasks.length === 0 ? (
           <p className="py-4 text-sm text-[#77716b] dark:text-[#aaa29b]">No subtasks yet.</p>
         ) : (
-          <DndContext sensors={subtaskSensors} collisionDetection={closestCenter} onDragEnd={onSubtaskDragEnd}><SortableContext items={shown.subtasks.map((item) => item.key)} strategy={verticalListSortingStrategy}><ul>
-            {shown.subtasks.map((item, index) => (
-              <SortableSubtask key={item.key} id={item.key} title={item.title} disabled={saving || reorderSubtasks.isPending}>
-                {editing ? (
-                  <DraftToggle
-                    done={item.isDone}
-                    label={`Mark subtask ${index + 1} ${item.isDone ? "incomplete" : "complete"}`}
-                    disabled={saving}
-                    onClick={() => changeSubtask(item.key, { isDone: !item.isDone })}
-                  />
-                ) : (
-                  <CompletionToggle
-                    kind="subtask"
-                    record={subtasks.find((subtask) => subtask.id === item.id)!}
-                  />
-                )}
-                <span
-                  className={`min-w-0 flex-1 ${item.isDone ? "text-[#958d86] line-through dark:text-[#aaa29b]" : ""}`}
-                >
-                  {editing ? (
-                    <InlineText
-                      label={`Subtask ${index + 1}`}
-                      value={item.title}
-                      placeholder="Subtask name"
-                      disabled={saving}
-                      autoFocus={!item.id}
-                      onChange={(title) => changeSubtask(item.key, { title })}
-                      onBlur={() => {
-                        // A blank new row is only a draft, so discard it when
-                        // the user leaves it. Existing subtasks are never deleted.
-                        if (!item.id && !item.title.trim()) {
+          <DndContext
+            sensors={subtaskSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onSubtaskDragEnd}
+          >
+            <SortableContext
+              items={shown.subtasks.map((item) => item.key)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul>
+                {shown.subtasks.map((item, index) => (
+                  <SortableSubtask
+                    key={item.key}
+                    id={item.key}
+                    title={item.title}
+                    disabled={saving || reorderSubtasks.isPending}
+                  >
+                    {editing ? (
+                      <DraftToggle
+                        done={item.isDone}
+                        label={`Mark subtask ${index + 1} ${item.isDone ? "incomplete" : "complete"}`}
+                        disabled={saving}
+                        onClick={() => changeSubtask(item.key, { isDone: !item.isDone })}
+                      />
+                    ) : (
+                      <CompletionToggle
+                        kind="subtask"
+                        record={subtasks.find((subtask) => subtask.id === item.id)!}
+                      />
+                    )}
+                    <span
+                      className={`min-w-0 flex-1 ${item.isDone ? "text-[#958d86] line-through dark:text-[#aaa29b]" : ""}`}
+                    >
+                      {editing ? (
+                        <InlineText
+                          label={`Subtask ${index + 1}`}
+                          value={item.title}
+                          placeholder="Subtask name"
+                          disabled={saving}
+                          autoFocus={!item.id}
+                          onChange={(title) => changeSubtask(item.key, { title })}
+                          onBlur={() => {
+                            // A blank new row is only a draft, so discard it when
+                            // the user leaves it. Existing subtasks are never deleted.
+                            if (!item.id && !item.title.trim()) {
+                              setDraft((value) => ({
+                                ...value,
+                                subtasks: value.subtasks.filter((next) => next.key !== item.key),
+                              }));
+                            }
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape" && !event.nativeEvent.isComposing) {
+                              event.preventDefault();
+                              // Leaving the field also runs the empty-draft cleanup.
+                              event.currentTarget.blur();
+                            }
+                            if (
+                              event.key === "Enter" &&
+                              !event.shiftKey &&
+                              !event.nativeEvent.isComposing
+                            ) {
+                              event.preventDefault();
+                              if (item.title.trim()) addSubtask();
+                            }
+                          }}
+                        />
+                      ) : (
+                        item.title
+                      )}
+                    </span>
+                    {editing ? (
+                      <button
+                        aria-label={`Remove subtask ${index + 1}`}
+                        className="absolute right-0 rounded bg-[#fffdfc] p-1 text-[#8a837c] hover:text-[#b74131] dark:bg-[#1e1c1a]"
+                        disabled={saving}
+                        onClick={() =>
                           setDraft((value) => ({
                             ...value,
                             subtasks: value.subtasks.filter((next) => next.key !== item.key),
-                          }));
+                          }))
                         }
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Escape" && !event.nativeEvent.isComposing) {
-                          event.preventDefault();
-                          // Leaving the field also runs the empty-draft cleanup.
-                          event.currentTarget.blur();
-                        }
-                        if (
-                          event.key === "Enter" &&
-                          !event.shiftKey &&
-                          !event.nativeEvent.isComposing
-                        ) {
-                          event.preventDefault();
-                          if (item.title.trim()) addSubtask();
-                        }
-                      }}
-                    />
-                  ) : (
-                    item.title
-                  )}
-                </span>
-                {editing ? (
-                  <button
-                    aria-label={`Remove subtask ${index + 1}`}
-                    className="absolute right-0 rounded bg-[#fffdfc] p-1 text-[#8a837c] hover:text-[#b74131] dark:bg-[#1e1c1a]"
-                    disabled={saving}
-                    onClick={() =>
-                      setDraft((value) => ({
-                        ...value,
-                        subtasks: value.subtasks.filter((next) => next.key !== item.key),
-                      }))
-                    }
-                    type="button"
-                  >
-                    <X size={16} />
-                  </button>
-                ) : (
-                  <DeleteSubtaskButton subtask={subtasks.find((subtask) => subtask.id === item.id)!} />
-                )}
-              </SortableSubtask>
-            ))}
-          </ul></SortableContext></DndContext>
+                        type="button"
+                      >
+                        <X size={16} />
+                      </button>
+                    ) : (
+                      <DeleteSubtaskButton
+                        subtask={subtasks.find((subtask) => subtask.id === item.id)!}
+                      />
+                    )}
+                  </SortableSubtask>
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
-        {editing ? <button
-          className="flex min-h-11 items-center gap-3 px-2 text-sm text-[#8a837c] transition-colors hover:text-[#c84b37] disabled:opacity-50 dark:text-[#aaa29b] dark:hover:text-[#ffad9b]"
-          disabled={saving}
-          onClick={addSubtask}
-          type="button"
-        >
-          <Plus aria-hidden="true" className="text-[#c84b37] dark:text-[#ff9d87]" size={18} />
-          Add subtask
-        </button> : <InlineSubtaskCreator taskId={task.id} />}
+        {editing ? (
+          <button
+            className="flex min-h-11 items-center gap-3 px-2 text-sm text-[#8a837c] transition-colors hover:text-[#c84b37] disabled:opacity-50 dark:text-[#aaa29b] dark:hover:text-[#ffad9b]"
+            disabled={saving}
+            onClick={addSubtask}
+            type="button"
+          >
+            <Plus aria-hidden="true" className="text-[#c84b37] dark:text-[#ff9d87]" size={18} />
+            Add subtask
+          </button>
+        ) : (
+          <InlineSubtaskCreator taskId={task.id} />
+        )}
       </section>
       {error && (
         <p className="mt-4 text-sm text-[#a13d2d] dark:text-[#ffad9b]" role="alert">

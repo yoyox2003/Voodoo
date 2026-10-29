@@ -27,7 +27,11 @@ export function TaskCreatePage() {
   const backTo = returnPath(location.state);
 
   if (workspace.isLoading || workspace.isError) {
-    return <PageFrame title="Create task"><WorkspacePageStatus {...workspace} /></PageFrame>;
+    return (
+      <PageFrame title="Create task">
+        <WorkspacePageStatus {...workspace} />
+      </PageFrame>
+    );
   }
 
   if (workspace.buckets.length === 0) {
@@ -35,8 +39,17 @@ export function TaskCreatePage() {
       <PageFrame backTo={backTo} title="Create task">
         <section className="mt-8 rounded-xl border border-[#efd5c7] bg-[#fff7f2] p-5 text-sm text-[#8c4435] dark:border-[#653f37] dark:bg-[#362522] dark:text-[#ffad9b]">
           <h2 className="font-semibold">Create a bucket first</h2>
-          <p className="mt-2 leading-6">Tasks live inside buckets. Use the plus buttons in the sidebar to create a folder, then a bucket, before returning here.</p>
-          <Button className="mt-4" onClick={() => navigate(backTo, { viewTransition: true })} variant="secondary">Go back</Button>
+          <p className="mt-2 leading-6">
+            Tasks live inside buckets. Use the plus buttons in the sidebar to create a folder, then
+            a bucket, before returning here.
+          </p>
+          <Button
+            className="mt-4"
+            onClick={() => navigate(backTo, { viewTransition: true })}
+            variant="secondary"
+          >
+            Go back
+          </Button>
         </section>
       </PageFrame>
     );
@@ -51,9 +64,22 @@ export function TaskCreatePage() {
     importance: "GREEN",
     isDone: false,
     position: 0,
-    bucketId: workspace.buckets.some((bucket) => bucket.id === requestedBucketId) ? requestedBucketId : "",
+    bucketId: workspace.buckets.some((bucket) => bucket.id === requestedBucketId)
+      ? requestedBucketId
+      : "",
     createdAt: "",
   };
 
-  return <TaskDetail task={task} subtasks={[]} creation={{ buckets: workspace.buckets, folders: workspace.folders, returnTo: backTo, bucketFromPage: Boolean(task.bucketId) }} />;
+  return (
+    <TaskDetail
+      task={task}
+      subtasks={[]}
+      creation={{
+        buckets: workspace.buckets,
+        folders: workspace.folders,
+        returnTo: backTo,
+        bucketFromPage: Boolean(task.bucketId),
+      }}
+    />
+  );
 }

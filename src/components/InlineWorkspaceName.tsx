@@ -6,7 +6,13 @@ import { apiQueryKey } from "../hooks/useWorkspaceData";
 import { useToast } from "../toast/useToast";
 import type { Bucket, Folder } from "../types/entities";
 
-export function InlineWorkspaceName({ item, kind }: { item: Folder | Bucket; kind: "folder" | "bucket" }) {
+export function InlineWorkspaceName({
+  item,
+  kind,
+}: {
+  item: Folder | Bucket;
+  kind: "folder" | "bucket";
+}) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(item.name);
   const saving = useRef(false);
@@ -19,20 +25,24 @@ export function InlineWorkspaceName({ item, kind }: { item: Folder | Bucket; kin
   const queryKey = apiQueryKey(userId, path);
 
   const rename = useMutation({
-    mutationFn: (nextName: string) => request<Folder | Bucket>(`${path}/${item.id}`, {
-      method: "PUT",
-      body: JSON.stringify({ name: nextName }),
-    }),
+    mutationFn: (nextName: string) =>
+      request<Folder | Bucket>(`${path}/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: nextName }),
+      }),
     onSuccess: (updated) => {
       // The sidebar and pages use the same query, so they see the saved name.
       queryClient.setQueryData<(Folder | Bucket)[]>(queryKey, (current = []) =>
-        current.map((record) => record.id === updated.id ? updated : record),
+        current.map((record) => (record.id === updated.id ? updated : record)),
       );
       setEditing(false);
       void queryClient.invalidateQueries({ queryKey });
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : `Unable to rename ${kind}.`),
-    onSettled: () => { saving.current = false; },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : `Unable to rename ${kind}.`),
+    onSettled: () => {
+      saving.current = false;
+    },
   });
 
   function save() {
@@ -53,7 +63,9 @@ export function InlineWorkspaceName({ item, kind }: { item: Folder | Bucket; kin
 
   return editing ? (
     <span className="relative inline-grid min-w-0 max-w-full break-words">
-      <span aria-hidden="true" className="invisible col-start-1 row-start-1">{name || " "}</span>
+      <span aria-hidden="true" className="invisible col-start-1 row-start-1">
+        {name || " "}
+      </span>
       <input
         aria-label={`${kind === "folder" ? "Folder" : "Bucket"} name`}
         autoFocus
@@ -63,7 +75,10 @@ export function InlineWorkspaceName({ item, kind }: { item: Folder | Bucket; kin
         onChange={(event) => setName(event.target.value)}
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing) return;
-          if (event.key === "Enter") { event.preventDefault(); save(); }
+          if (event.key === "Enter") {
+            event.preventDefault();
+            save();
+          }
           if (event.key === "Escape") {
             event.preventDefault();
             cancelBlur.current = true;
@@ -77,7 +92,11 @@ export function InlineWorkspaceName({ item, kind }: { item: Folder | Bucket; kin
     <button
       aria-label={`Rename ${kind} ${item.name}`}
       className="-mx-2 -my-1 rounded-sm px-2 py-1 text-left font-inherit transition-colors hover:text-[#c84b37] focus:outline-none dark:hover:text-[#ffad9b]"
-      onClick={() => { cancelBlur.current = false; setName(item.name); setEditing(true); }}
+      onClick={() => {
+        cancelBlur.current = false;
+        setName(item.name);
+        setEditing(true);
+      }}
       title={`Click to rename ${kind}`}
       type="button"
     >

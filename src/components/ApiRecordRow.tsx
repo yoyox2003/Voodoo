@@ -45,9 +45,13 @@ export function ApiRecordRow({ onDelete, onRename, record }: ApiRecordRowProps) 
             value={name}
           />
         ) : (
-          <p className="truncate font-medium text-[#35322f] dark:text-[#eee9e4]">{recordName(record)}</p>
+          <p className="truncate font-medium text-[#35322f] dark:text-[#eee9e4]">
+            {recordName(record)}
+          </p>
         )}
-        <p className="mt-1 font-mono text-xs text-[#9b948d] dark:text-[#968e87]">id: {record.id.slice(0, 8)}…</p>
+        <p className="mt-1 font-mono text-xs text-[#9b948d] dark:text-[#968e87]">
+          id: {record.id.slice(0, 8)}…
+        </p>
       </div>
 
       <div className="flex shrink-0 gap-2">

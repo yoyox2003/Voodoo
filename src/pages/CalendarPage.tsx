@@ -58,7 +58,15 @@ export function CalendarPage() {
       <p className="mt-3 text-sm text-[#77716b] dark:text-[#aaa29b]">
         Your task deadlines, one day at a time.
       </p>
-      <Button className="mt-6" onClick={() => navigate(`/tasks/new?dueDate=${selectedDay}`, { state: { returnTo: "/calendar" }, viewTransition: true })}>
+      <Button
+        className="mt-6"
+        onClick={() =>
+          navigate(`/tasks/new?dueDate=${selectedDay}`, {
+            state: { returnTo: "/calendar" },
+            viewTransition: true,
+          })
+        }
+      >
         Create task for this day
       </Button>
       <div className="mt-9 grid min-w-0 gap-10 xl:grid-cols-[minmax(0,1fr)_260px]">

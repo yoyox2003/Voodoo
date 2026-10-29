@@ -22,10 +22,7 @@ export async function parseApiResponse<T>(response: Response): Promise<T> {
 
   if (!response.ok) {
     const message =
-      typeof body === "object" &&
-      body !== null &&
-      "error" in body &&
-      typeof body.error === "string"
+      typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
         ? body.error
         : "The API request failed.";
     throw new ApiError(message, response.status);

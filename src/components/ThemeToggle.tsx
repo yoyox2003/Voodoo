@@ -17,7 +17,11 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
       onClick={toggleTheme}
       type="button"
     >
-      {isDark ? <Sun aria-hidden="true" size={compact ? 16 : 17} /> : <Moon aria-hidden="true" size={compact ? 16 : 17} />}
+      {isDark ? (
+        <Sun aria-hidden="true" size={compact ? 16 : 17} />
+      ) : (
+        <Moon aria-hidden="true" size={compact ? 16 : 17} />
+      )}
       {!compact && <span className="hidden sm:inline">{isDark ? "Light" : "Dark"}</span>}
     </button>
   );

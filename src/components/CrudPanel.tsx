@@ -111,15 +111,12 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
   });
 
   const records = recordsQuery.data ?? [];
-  const parents = detail ? parentsQuery.data ?? [] : [];
+  const parents = detail ? (parentsQuery.data ?? []) : [];
 
   async function refreshPanel() {
     // Parent and record lists are independent API requests, so refetch them in
     // parallel instead of waiting for one network request before starting another.
-    await Promise.all([
-      recordsQuery.refetch(),
-      ...(detail ? [parentsQuery.refetch()] : []),
-    ]);
+    await Promise.all([recordsQuery.refetch(), ...(detail ? [parentsQuery.refetch()] : [])]);
   }
 
   async function reconcileCache() {
@@ -147,9 +144,7 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
     },
     onSuccess: (createdRecord, _variables, context) => {
       queryClient.setQueryData<EntityRecord[]>(recordsKey, (current = []) =>
-        current.map((record) =>
-          record.id === context?.temporaryId ? createdRecord : record,
-        ),
+        current.map((record) => (record.id === context?.temporaryId ? createdRecord : record)),
       );
       setName("");
       toast.success(`${entityLabels[activeEntity].slice(0, -1)} created successfully.`);
@@ -177,7 +172,8 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
       );
       return { previousRecords } satisfies MutationSnapshot;
     },
-    onSuccess: () => toast.success(`${entityLabels[activeEntity].slice(0, -1)} renamed successfully.`),
+    onSuccess: () =>
+      toast.success(`${entityLabels[activeEntity].slice(0, -1)} renamed successfully.`),
     onError: (error, _variables, context) => {
       queryClient.setQueryData(recordsKey, context?.previousRecords);
       toast.error(messageFrom(error));
@@ -196,7 +192,8 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
       );
       return { previousRecords } satisfies MutationSnapshot;
     },
-    onSuccess: () => toast.success(`${entityLabels[activeEntity].slice(0, -1)} deleted successfully.`),
+    onSuccess: () =>
+      toast.success(`${entityLabels[activeEntity].slice(0, -1)} deleted successfully.`),
     onError: (error, _record, context) => {
       queryClient.setQueryData(recordsKey, context?.previousRecords);
       toast.error(messageFrom(error));
@@ -260,17 +257,25 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
           <p className="text-sm font-semibold text-[#d95d47]">CRUD TESTER</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">{entityLabels[activeEntity]}</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-[#77716b] dark:text-[#aaa29b]">
-            Create a record, edit its name, or remove it to check the current Express route behavior.
+            Create a record, edit its name, or remove it to check the current Express route
+            behavior.
           </p>
         </div>
-        <Button disabled={isRefreshing || isMutating} onClick={() => void refreshPanel()} variant="secondary">
+        <Button
+          disabled={isRefreshing || isMutating}
+          onClick={() => void refreshPanel()}
+          variant="secondary"
+        >
           {isRefreshing ? "Refreshing…" : "Refresh list"}
         </Button>
       </div>
 
       <section className="mt-8 rounded-2xl border border-[#e7e2dc] bg-[#fffefd] p-5 shadow-sm dark:border-[#403c38] dark:bg-[#242220] dark:shadow-none sm:p-6">
         <h2 className="text-lg font-bold">Create {entityLabels[activeEntity].slice(0, -1)}</h2>
-        <form className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" onSubmit={createRecord}>
+        <form
+          className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+          onSubmit={createRecord}
+        >
           <TextField
             label={`${entityLabels[activeEntity].slice(0, -1)} name`}
             onChange={(event) => setName(event.target.value)}
@@ -314,7 +319,10 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
       </section>
 
       {error && (
-        <p className="mt-6 rounded-xl border border-[#f1c7be] bg-[#fff2ef] px-4 py-3 text-sm text-[#a13d2d] dark:border-[#73463d] dark:bg-[#3d2722] dark:text-[#ffad9b]" role="alert">
+        <p
+          className="mt-6 rounded-xl border border-[#f1c7be] bg-[#fff2ef] px-4 py-3 text-sm text-[#a13d2d] dark:border-[#73463d] dark:bg-[#3d2722] dark:text-[#ffad9b]"
+          role="alert"
+        >
           {error}
         </p>
       )}
@@ -325,11 +333,17 @@ export function CrudPanel({ activeEntity }: CrudPanelProps) {
         </div>
 
         {initialLoading ? (
-          <p className="py-8 text-sm text-[#77716b] dark:text-[#aaa29b]">Loading records from the backend…</p>
+          <p className="py-8 text-sm text-[#77716b] dark:text-[#aaa29b]">
+            Loading records from the backend…
+          </p>
         ) : recordsQuery.isError && records.length === 0 ? (
-          <p className="py-8 text-sm text-[#77716b] dark:text-[#aaa29b]">Unable to load records. Use Refresh list to try again.</p>
+          <p className="py-8 text-sm text-[#77716b] dark:text-[#aaa29b]">
+            Unable to load records. Use Refresh list to try again.
+          </p>
         ) : records.length === 0 ? (
-          <p className="py-8 text-sm text-[#77716b] dark:text-[#aaa29b]">No records yet. Use the form above to create the first one.</p>
+          <p className="py-8 text-sm text-[#77716b] dark:text-[#aaa29b]">
+            No records yet. Use the form above to create the first one.
+          </p>
         ) : (
           <ul>
             {records.map((record) => (

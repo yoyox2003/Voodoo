@@ -14,7 +14,10 @@ export function localDateKey(date: Date = new Date()): string {
 
 export function formatCalendarDay(day: string): string {
   return new Date(`${day}T12:00:00`).toLocaleDateString(undefined, {
-    weekday: "long", month: "long", day: "numeric", year: "numeric",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
   });
 }
 

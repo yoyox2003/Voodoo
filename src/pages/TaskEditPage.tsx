@@ -78,7 +78,9 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
         }),
       });
 
-      const keptIds = new Set(editedSubtasks.flatMap((subtask) => subtask.id ? [subtask.id] : []));
+      const keptIds = new Set(
+        editedSubtasks.flatMap((subtask) => (subtask.id ? [subtask.id] : [])),
+      );
       const deletedSubtaskIds = subtasks
         .filter((subtask) => !keptIds.has(subtask.id))
         .map((subtask) => subtask.id);
@@ -91,15 +93,25 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
       // After the task is valid and saved, these independent subtask requests
       // run together. Each request still uses the backend ownership checks.
       const [updatedSubtasks, createdSubtasks] = await Promise.all([
-        Promise.all(renamedSubtasks.map((subtask) => request<Subtask>(`/api/subtasks/${subtask.id}`, {
-          method: "PUT",
-          body: JSON.stringify({ name: subtask.title.trim() }),
-        }))),
-        Promise.all(newSubtasks.map((subtask) => request<Subtask>(`/api/tasks/${task.id}/subtasks`, {
-          method: "POST",
-          body: JSON.stringify({ name: subtask.title.trim() }),
-        }))),
-        Promise.all(deletedSubtaskIds.map((id) => request<void>(`/api/subtasks/${id}`, { method: "DELETE" }))),
+        Promise.all(
+          renamedSubtasks.map((subtask) =>
+            request<Subtask>(`/api/subtasks/${subtask.id}`, {
+              method: "PUT",
+              body: JSON.stringify({ name: subtask.title.trim() }),
+            }),
+          ),
+        ),
+        Promise.all(
+          newSubtasks.map((subtask) =>
+            request<Subtask>(`/api/tasks/${task.id}/subtasks`, {
+              method: "POST",
+              body: JSON.stringify({ name: subtask.title.trim() }),
+            }),
+          ),
+        ),
+        Promise.all(
+          deletedSubtaskIds.map((id) => request<void>(`/api/subtasks/${id}`, { method: "DELETE" })),
+        ),
       ]);
 
       return { createdSubtasks, deletedSubtaskIds, updatedSubtasks, updatedTask };
@@ -108,7 +120,7 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
       // Replace cache entries with API responses so the bucket, folder, and
       // task pages immediately agree about the saved task and its subtasks.
       queryClient.setQueryData<Task[]>(tasksKey, (current = []) =>
-        current.map((item) => item.id === updatedTask.id ? updatedTask : item),
+        current.map((item) => (item.id === updatedTask.id ? updatedTask : item)),
       );
       const deletedIds = new Set(deletedSubtaskIds);
       const updatedById = new Map(updatedSubtasks.map((subtask) => [subtask.id, subtask]));
@@ -139,9 +151,9 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
   }
 
   function updateSubtask(key: string, title: string) {
-    setEditedSubtasks((current) => current.map((subtask) =>
-      subtask.key === key ? { ...subtask, title } : subtask,
-    ));
+    setEditedSubtasks((current) =>
+      current.map((subtask) => (subtask.key === key ? { ...subtask, title } : subtask)),
+    );
   }
 
   function removeSubtask(key: string) {
@@ -149,10 +161,7 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
   }
 
   function addSubtask() {
-    setEditedSubtasks((current) => [
-      ...current,
-      { key: `new-${crypto.randomUUID()}`, title: "" },
-    ]);
+    setEditedSubtasks((current) => [...current, { key: `new-${crypto.randomUUID()}`, title: "" }]);
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -170,54 +179,135 @@ function TaskEditForm({ task, subtasks }: { task: Task; subtasks: Subtask[] }) {
   }
 
   return (
-    <PageFrame backTo={`/tasks/${task.id}`} backLabel="Back to task" eyebrow="Task" title="Edit task">
+    <PageFrame
+      backTo={`/tasks/${task.id}`}
+      backLabel="Back to task"
+      eyebrow="Task"
+      title="Edit task"
+    >
       <form className="mt-8 grid max-w-2xl gap-6" onSubmit={submit}>
         <label className="grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
           Task name
-          <input autoFocus className="rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("name", event.target.value)} value={form.name} />
+          <input
+            autoFocus
+            className="rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
+            disabled={saveChanges.isPending}
+            onChange={(event) => updateForm("name", event.target.value)}
+            value={form.name}
+          />
         </label>
         <label className="grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
-          Description <span className="font-normal text-[#8b8580] dark:text-[#aaa29b]">Optional</span>
-          <textarea className="min-h-28 rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("description", event.target.value)} value={form.description} />
+          Description{" "}
+          <span className="font-normal text-[#8b8580] dark:text-[#aaa29b]">Optional</span>
+          <textarea
+            className="min-h-28 rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
+            disabled={saveChanges.isPending}
+            onChange={(event) => updateForm("description", event.target.value)}
+            value={form.description}
+          />
         </label>
         <label className="grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
           Due date <span className="font-normal text-[#8b8580] dark:text-[#aaa29b]">Optional</span>
-          <input className="w-fit rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateForm("dueDate", event.target.value)} type="date" value={form.dueDate} />
+          <input
+            className="w-fit rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
+            disabled={saveChanges.isPending}
+            onChange={(event) => updateForm("dueDate", event.target.value)}
+            type="date"
+            value={form.dueDate}
+          />
         </label>
         <label className="flex w-fit items-center gap-3 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
-          <input checked={form.isDone} className="h-4 w-4 accent-[#c84b37]" disabled={saveChanges.isPending} onChange={(event) => updateForm("isDone", event.target.checked)} type="checkbox" />
+          <input
+            checked={form.isDone}
+            className="h-4 w-4 accent-[#c84b37]"
+            disabled={saveChanges.isPending}
+            onChange={(event) => updateForm("isDone", event.target.checked)}
+            type="checkbox"
+          />
           Mark task as completed
         </label>
         <fieldset className="grid gap-2">
-          <legend className="text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">Importance</legend>
+          <legend className="text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]">
+            Importance
+          </legend>
           <div className="flex gap-2">
             {importanceValues.map((importance) => {
               const selected = form.importance === importance;
               const label = importanceLabels[importance];
-              return <button aria-label={`Set importance to ${label}`} aria-pressed={selected} className={`grid h-9 w-9 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29] ${selected ? "ring-2 ring-[#353535] ring-offset-2 dark:ring-[#eee9e4] dark:ring-offset-[#1b1a18]" : ""}`} disabled={saveChanges.isPending} key={importance} onClick={() => updateForm("importance", importance)} title={`Set importance to ${label}`} type="button"><span aria-hidden="true" className={`h-3.5 w-3.5 rounded-full ${importanceColorClasses[importance]}`} /></button>;
+              return (
+                <button
+                  aria-label={`Set importance to ${label}`}
+                  aria-pressed={selected}
+                  className={`grid h-9 w-9 place-items-center rounded-full outline-none transition hover:bg-[#f3f1ef] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#302d29] ${selected ? "ring-2 ring-[#353535] ring-offset-2 dark:ring-[#eee9e4] dark:ring-offset-[#1b1a18]" : ""}`}
+                  disabled={saveChanges.isPending}
+                  key={importance}
+                  onClick={() => updateForm("importance", importance)}
+                  title={`Set importance to ${label}`}
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`h-3.5 w-3.5 rounded-full ${importanceColorClasses[importance]}`}
+                  />
+                </button>
+              );
             })}
           </div>
         </fieldset>
         <section className="grid gap-3 border-t border-[#e9e5e2] pt-6 dark:border-[#393531]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold">Subtasks</h2>
-            <Button disabled={saveChanges.isPending} onClick={addSubtask} variant="secondary">Add subtask</Button>
+            <Button disabled={saveChanges.isPending} onClick={addSubtask} variant="secondary">
+              Add subtask
+            </Button>
           </div>
-          {editedSubtasks.length === 0 ? <p className="text-sm text-[#77716b] dark:text-[#aaa29b]">Add smaller steps if this task needs them.</p> : (
+          {editedSubtasks.length === 0 ? (
+            <p className="text-sm text-[#77716b] dark:text-[#aaa29b]">
+              Add smaller steps if this task needs them.
+            </p>
+          ) : (
             <div className="grid gap-3">
               {editedSubtasks.map((subtask, index) => (
                 <div className="flex items-center gap-3" key={subtask.key}>
-                  <input aria-label={`Subtask ${index + 1}`} className="min-w-0 flex-1 rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]" disabled={saveChanges.isPending} onChange={(event) => updateSubtask(subtask.key, event.target.value)} value={subtask.title} />
-                  <Button aria-label={`Remove subtask ${index + 1}`} disabled={saveChanges.isPending} onClick={() => removeSubtask(subtask.key)} variant="danger">Remove</Button>
+                  <input
+                    aria-label={`Subtask ${index + 1}`}
+                    className="min-w-0 flex-1 rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
+                    disabled={saveChanges.isPending}
+                    onChange={(event) => updateSubtask(subtask.key, event.target.value)}
+                    value={subtask.title}
+                  />
+                  <Button
+                    aria-label={`Remove subtask ${index + 1}`}
+                    disabled={saveChanges.isPending}
+                    onClick={() => removeSubtask(subtask.key)}
+                    variant="danger"
+                  >
+                    Remove
+                  </Button>
                 </div>
               ))}
             </div>
           )}
         </section>
-        {validationError && <p className="rounded-lg border border-[#f1c7be] bg-[#fff2ef] px-3 py-2 text-sm text-[#a13d2d] dark:border-[#73463d] dark:bg-[#3d2722] dark:text-[#ffad9b]" role="alert">{validationError}</p>}
+        {validationError && (
+          <p
+            className="rounded-lg border border-[#f1c7be] bg-[#fff2ef] px-3 py-2 text-sm text-[#a13d2d] dark:border-[#73463d] dark:bg-[#3d2722] dark:text-[#ffad9b]"
+            role="alert"
+          >
+            {validationError}
+          </p>
+        )}
         <div className="flex flex-wrap justify-end gap-3 border-t border-[#e9e5e2] pt-6 dark:border-[#393531]">
-          <Button disabled={saveChanges.isPending} onClick={() => navigate(`/tasks/${task.id}`)} variant="ghost">Cancel</Button>
-          <Button disabled={saveChanges.isPending} type="submit">{saveChanges.isPending ? "Saving…" : "Save changes"}</Button>
+          <Button
+            disabled={saveChanges.isPending}
+            onClick={() => navigate(`/tasks/${task.id}`)}
+            variant="ghost"
+          >
+            Cancel
+          </Button>
+          <Button disabled={saveChanges.isPending} type="submit">
+            {saveChanges.isPending ? "Saving…" : "Save changes"}
+          </Button>
         </div>
       </form>
     </PageFrame>
@@ -230,11 +320,25 @@ export function TaskEditPage() {
   const task = workspace.tasks.find((item) => item.id === taskId);
 
   if (workspace.isLoading || workspace.isError) {
-    return <PageFrame title="Edit task"><WorkspacePageStatus {...workspace} /></PageFrame>;
+    return (
+      <PageFrame title="Edit task">
+        <WorkspacePageStatus {...workspace} />
+      </PageFrame>
+    );
   }
   if (!task) {
-    return <PageFrame title="Task not found"><p className="mt-5 text-sm text-[#77716b] dark:text-[#aaa29b]">This task is unavailable.</p></PageFrame>;
+    return (
+      <PageFrame title="Task not found">
+        <p className="mt-5 text-sm text-[#77716b] dark:text-[#aaa29b]">This task is unavailable.</p>
+      </PageFrame>
+    );
   }
 
-  return <TaskEditForm key={task.id} task={task} subtasks={workspace.subtasks.filter((subtask) => subtask.taskId === task.id)} />;
+  return (
+    <TaskEditForm
+      key={task.id}
+      task={task}
+      subtasks={workspace.subtasks.filter((subtask) => subtask.taskId === task.id)}
+    />
+  );
 }

@@ -54,9 +54,7 @@ export function CreateWorkspaceItemDialog({ onClose, target }: CreateWorkspaceIt
       if (!target) throw new Error("Choose what to create before submitting the form.");
 
       const path =
-        target.kind === "folder"
-          ? "/api/folders"
-          : `/api/folders/${target.folder.id}/buckets`;
+        target.kind === "folder" ? "/api/folders" : `/api/folders/${target.folder.id}/buckets`;
       return request<Folder | Bucket>(path, {
         method: "POST",
         body: JSON.stringify({ name: nextName }),
@@ -66,7 +64,9 @@ export function CreateWorkspaceItemDialog({ onClose, target }: CreateWorkspaceIt
       await queryClient.invalidateQueries({ queryKey: ["api", userId] });
       toast.success(`${itemLabel[0].toUpperCase()}${itemLabel.slice(1)} created successfully.`);
       onClose();
-      navigate("folderId" in created ? `/buckets/${created.id}` : `/folders/${created.id}`, { viewTransition: true });
+      navigate("folderId" in created ? `/buckets/${created.id}` : `/folders/${created.id}`, {
+        viewTransition: true,
+      });
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -98,14 +98,22 @@ export function CreateWorkspaceItemDialog({ onClose, target }: CreateWorkspaceIt
       }}
       role="dialog"
     >
-      <form className="w-full max-w-md rounded-xl border border-[#e9e5e2] bg-[#fffdfc] p-6 shadow-2xl dark:border-[#413c38] dark:bg-[#252220]" onSubmit={submit}>
+      <form
+        className="w-full max-w-md rounded-xl border border-[#e9e5e2] bg-[#fffdfc] p-6 shadow-2xl dark:border-[#413c38] dark:bg-[#252220]"
+        onSubmit={submit}
+      >
         <h2 className="text-lg font-semibold" id="create-workspace-item-title">
           Add {itemLabel}
         </h2>
         {target.kind === "bucket" && (
-          <p className="mt-1 text-sm text-[#77716b] dark:text-[#aaa29b]">Inside {target.folder.name}</p>
+          <p className="mt-1 text-sm text-[#77716b] dark:text-[#aaa29b]">
+            Inside {target.folder.name}
+          </p>
         )}
-        <label className="mt-6 grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]" htmlFor="workspace-item-name">
+        <label
+          className="mt-6 grid gap-2 text-sm font-medium text-[#4d4b48] dark:text-[#d5cec7]"
+          htmlFor="workspace-item-name"
+        >
           {itemLabel === "folder" ? "Folder" : "Bucket"} name
           <input
             className="rounded-md border border-[#d9d4cf] bg-white px-3 py-2.5 text-[#292827] outline-none placeholder:text-[#a6a19b] dark:border-[#4b4742] dark:bg-[#211f1d] dark:text-[#f3efea]"
@@ -116,9 +124,15 @@ export function CreateWorkspaceItemDialog({ onClose, target }: CreateWorkspaceIt
             value={name}
           />
         </label>
-        {error && <p className="mt-3 text-sm text-[#b74131] dark:text-[#ff9680]" role="alert">{error}</p>}
+        {error && (
+          <p className="mt-3 text-sm text-[#b74131] dark:text-[#ff9680]" role="alert">
+            {error}
+          </p>
+        )}
         <div className="mt-6 flex justify-end gap-3">
-          <Button disabled={createMutation.isPending} onClick={onClose} variant="ghost">Cancel</Button>
+          <Button disabled={createMutation.isPending} onClick={onClose} variant="ghost">
+            Cancel
+          </Button>
           <Button disabled={createMutation.isPending} type="submit">
             {createMutation.isPending ? "Adding…" : `Add ${itemLabel}`}
           </Button>

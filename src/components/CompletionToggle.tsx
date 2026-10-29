@@ -25,24 +25,26 @@ export function CompletionToggle({ kind, record }: CompletionToggleProps) {
 
   const toggle = useMutation({
     mutationKey,
-    mutationFn: (isDone: boolean) => request<Task | Subtask>(`${path}/${record.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ isDone }),
-    }),
+    mutationFn: (isDone: boolean) =>
+      request<Task | Subtask>(`${path}/${record.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isDone }),
+      }),
     onMutate: async (isDone) => {
       await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<(Task | Subtask)[]>(queryKey)
+      const previous = queryClient
+        .getQueryData<(Task | Subtask)[]>(queryKey)
         ?.find((item) => item.id === record.id);
       // All views share this list, so the checkmark changes immediately while
       // the authenticated request saves the actual row in the database.
       queryClient.setQueryData<(Task | Subtask)[]>(queryKey, (current = []) =>
-        current.map((item) => item.id === record.id ? { ...item, isDone } : item),
+        current.map((item) => (item.id === record.id ? { ...item, isDone } : item)),
       );
       return { previous };
     },
     onSuccess: (savedRecord) => {
       queryClient.setQueryData<(Task | Subtask)[]>(queryKey, (current = []) =>
-        current.map((item) => item.id === savedRecord.id ? savedRecord : item),
+        current.map((item) => (item.id === savedRecord.id ? savedRecord : item)),
       );
     },
     onError: (error, _isDone, context) => {
@@ -51,7 +53,7 @@ export function CompletionToggle({ kind, record }: CompletionToggleProps) {
       if (context?.previous) {
         const previous = context.previous;
         queryClient.setQueryData<(Task | Subtask)[]>(queryKey, (current = []) =>
-          current.map((item) => item.id === record.id ? previous : item),
+          current.map((item) => (item.id === record.id ? previous : item)),
         );
       }
       toast.error(error instanceof Error ? error.message : `Unable to update ${kind}.`);
