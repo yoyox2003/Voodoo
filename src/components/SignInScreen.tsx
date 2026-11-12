@@ -19,13 +19,13 @@ export function SignInScreen() {
             ✓
           </div>
           <p className="mt-12 text-sm font-semibold uppercase tracking-[0.18em] text-white/75">
-            Voodoo API tester
+            YOUR WORKSPACE
           </p>
           <h1 className="mt-4 text-4xl font-bold leading-tight">
-            Test your backend with a calm, focused workspace.
+            Make space for the work that matters.
           </h1>
           <p className="mt-5 max-w-sm text-base leading-7 text-white/85">
-            Sign in once, then create, edit, and delete the records in your Todo hierarchy.
+            Organize projects into buckets, break tasks into clear steps, and keep track of your progress.
           </p>
         </div>
 
